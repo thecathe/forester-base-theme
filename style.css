@@ -724,8 +724,8 @@ ol li ol li ol {
 .icard {
   box-sizing: border-box;
   display: grid;
-  grid-template-areas: "title" "image" "description";
-  grid-template-rows: auto 1fr auto;
+  grid-template-areas: "title" "subtitle" "image" "description";
+  grid-template-rows: auto auto 1fr auto;
   gap: .4em;
   height: 100%;
   padding: .6em;
@@ -734,10 +734,26 @@ ol li ol li ol {
   overflow: hidden;
 }
 
+/* A field left unset (e.g. no subtitle) still emits its div, just
+   empty -- collapse it out rather than reserving a gap for it. */
+.icard-title:empty,
+.icard-subtitle:empty,
+.icard-description:empty {
+  display: none;
+}
+
 .icard-title {
   grid-area: title;
   font-weight: bold;
   text-align: center;
+}
+
+.icard-subtitle {
+  grid-area: subtitle;
+  margin-top: -.4em;
+  text-align: center;
+  font-size: .85em;
+  color: #666;
 }
 
 .icard-image {
