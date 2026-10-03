@@ -828,8 +828,14 @@ ol li ol li ol {
 
 .icard-bar-stack {
   display: flex;
-  flex-direction: column;
+  /* \card's own stack builds upward from the bottom of the sidebar (the
+     first \StackItem ends up lowest); column-reverse matches that, and
+     margin-top: auto (on a flex column parent) pushes the whole stack
+     down to flush with the sidebar's bottom edge, away from the
+     icon/header group at the top. */
+  flex-direction: column-reverse;
   gap: .3em;
+  margin-top: auto;
 }
 
 .icard-stack-item {
