@@ -661,6 +661,12 @@ ol li ol li ol {
 .flip-card-back {
   position: absolute;
   inset: 0;
+  /* Firefox computes backface-visibility against an element's own
+     transform rather than its accumulated 3D transform, so a face
+     with no transform of its own (the front) is treated as always
+     facing forward and never gets hidden. Giving it an explicit
+     (identity) rotateY makes Firefox evaluate it correctly. */
+  transform: rotateY(0deg);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
