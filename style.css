@@ -627,6 +627,7 @@ ol li ol li ol {
    drives the flip, so clicking the card toggles it with no JavaScript,
    and it always starts unchecked (front) on every page load. */
 .flip-card {
+  --flip-card-wobble-shift: 1.5px;
   position: relative;
   display: inline-block;
   vertical-align: top;
@@ -635,25 +636,45 @@ ol li ol li ol {
   cursor: pointer;
   -webkit-perspective: 1200px;
   perspective: 1200px;
+  /* The wobble animation is always attached but paused/zero-iteration
+     at rest, so it just sits on its 0% keyframe (neutral); :hover below
+     only changes pacing and play-state to set it going, rather than
+     defining the animation fresh on hover. */
+  transition: rotate .66s ease-in-out;
+  animation-name: flip-card-wobble;
+  animation-duration: 2s;
+  animation-iteration-count: 0;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-play-state: paused;
+  animation-direction: alternate-reverse;
 }
 
 .flip-card:hover {
-  animation: flip-card-wobble 1.4s ease-in-out infinite;
+  animation-duration: 6s;
+  animation-iteration-count: infinite;
+  animation-play-state: running;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .flip-card:hover {
-    animation: none;
+    animation-play-state: paused;
   }
 }
 
-/* Lifts and rocks the whole card on hover, independent of the front/back
-   flip (which only ever transforms .flip-card-inner), so it works the
-   same while showing either face. */
+/* Lifts and rocks the whole card while hovering, independent of the
+   front/back flip (which only ever transforms .flip-card-inner), so it
+   works the same while showing either face. translate goes through
+   transform rather than the standalone translate property so it can't
+   collide with .flip-card-inner's own rotateY transform if this were
+   ever applied there instead; rotate is independent of transform, so
+   it layers on top of it (and transitions on its own, above). */
 @keyframes flip-card-wobble {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(-6px) rotate(-1.5deg); }
-  75% { transform: translateY(-6px) rotate(1.5deg); }
+  0%, 100% { transform: translate(0, 0); rotate: 0deg; }
+  20% { transform: translate(var(--flip-card-wobble-shift), calc(-4px - var(--flip-card-wobble-shift))); rotate: -2deg; }
+  40% { transform: translate(var(--flip-card-wobble-shift), calc(-4px + var(--flip-card-wobble-shift))); rotate: 4deg; }
+  60% { transform: translate(var(--flip-card-wobble-shift), calc(-4px + var(--flip-card-wobble-shift))); rotate: 3deg; }
+  80% { transform: translate(var(--flip-card-wobble-shift), calc(-4px + var(--flip-card-wobble-shift))); rotate: -3deg; }
 }
 
 .flip-card-checkbox {
