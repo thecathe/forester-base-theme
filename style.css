@@ -622,3 +622,51 @@ ol li ol li ol {
  background-color: #bbb;
  color: white;
 }
+
+/* Flip cards (see \flipcard in latex-preamble.tree): a hidden checkbox
+   drives the flip, so clicking the card toggles it with no JavaScript,
+   and it always starts unchecked (front) on every page load. */
+.flip-card {
+  display: inline-block;
+  vertical-align: top;
+  width: 14em;
+  margin: 0 .5em .5em 0;
+  cursor: pointer;
+  perspective: 1200px;
+}
+
+.flip-card-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 8;
+  transition: transform .6s;
+  transform-style: preserve-3d;
+}
+
+.flip-card-checkbox:checked ~ .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front img,
+.flip-card-back img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
