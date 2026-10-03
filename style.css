@@ -627,16 +627,19 @@ ol li ol li ol {
    drives the flip, so clicking the card toggles it with no JavaScript,
    and it always starts unchecked (front) on every page load. */
 .flip-card {
+  position: relative;
   display: inline-block;
   vertical-align: top;
   width: 14em;
   margin: 0 .5em .5em 0;
   cursor: pointer;
+  -webkit-perspective: 1200px;
   perspective: 1200px;
 }
 
 .flip-card-checkbox {
   position: absolute;
+  inset: 0;
   opacity: 0;
   pointer-events: none;
 }
@@ -647,6 +650,7 @@ ol li ol li ol {
   aspect-ratio: 5 / 8;
   transition: transform .6s;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
 }
 
 .flip-card-checkbox:checked ~ .flip-card-inner {
@@ -658,6 +662,7 @@ ol li ol li ol {
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .flip-card-back {
