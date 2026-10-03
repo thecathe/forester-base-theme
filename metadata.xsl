@@ -86,6 +86,35 @@
     </li>
   </xsl:template>
 
+  <xsl:template match="f:meta[@name='started']">
+    <li class="meta-item">
+      <xsl:text>Started: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='submitted']">
+    <li class="meta-item">
+      <xsl:text>Submitted: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+
+  <xsl:template match="f:meta[@name='viva date']">
+    <li class="meta-item">
+      <xsl:text>Viva: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='completed']">
+    <li class="meta-item">
+      <xsl:text>Completed: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
   <xsl:template match="f:authors">
     <xsl:if test="f:author or f:contributor">
       <li class="meta-item">
@@ -134,6 +163,27 @@
 
   <xsl:template match="f:meta[@name='venue']|f:meta[@name='position']|f:meta[@name='institution']|f:meta[@name='source']">
     <li class="meta-item">
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='supervised by']">
+    <li class="meta-item">
+      <xsl:text>Supervised by: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='led by']">
+    <li class="meta-item">
+      <xsl:text>Led by: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='members']">
+    <li class="meta-item">
+      <xsl:text>Members: </xsl:text>
       <xsl:apply-templates />
     </li>
   </xsl:template>
