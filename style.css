@@ -717,14 +717,18 @@ ol li ol li ol {
 
 /* \icard (see latex-preamble.tree): a \card rendered as real HTML, so
    it can hold real forester content (links, etc.) instead of a flat
-   LaTeX-rendered image. \Title/\Description/\Image can be called in
-   any order -- grid-template-areas fixes their on-screen position
-   regardless of call order. Intentionally just these three fields for
-   now; no sidebars (see the macro's own comment for why). */
+   LaTeX-rendered image. \Title/\Description/\Image/\SetOutline* can be
+   called in any order -- grid-template-areas and :has() (further down)
+   fix their on-screen position/effect regardless of call order. */
 .icard {
   box-sizing: border-box;
   display: grid;
-  grid-template-areas: "title" "subtitle" "image" "description";
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "leftbar title rightbar"
+    "leftbar subtitle rightbar"
+    "leftbar image rightbar"
+    "leftbar description rightbar";
   grid-template-rows: auto auto 1fr auto;
   gap: .4em;
   height: 100%;
@@ -734,11 +738,17 @@ ol li ol li ol {
   overflow: hidden;
 }
 
-/* A field left unset (e.g. no subtitle) still emits its div, just
-   empty -- collapse it out rather than reserving a gap for it. */
+/* A field left unset (e.g. no subtitle, no sidebar) still emits its
+   div, just empty -- collapse it out rather than reserving blank
+   space for it. */
 .icard-title:empty,
 .icard-subtitle:empty,
-.icard-description:empty {
+.icard-description:empty,
+.icard-leftbar:empty,
+.icard-rightbar:empty,
+.icard-bar-icon:empty,
+.icard-bar-header:empty,
+.icard-bar-stack:empty {
   display: none;
 }
 
@@ -746,6 +756,7 @@ ol li ol li ol {
   grid-area: title;
   font-weight: bold;
   text-align: center;
+  border: 1px solid transparent;
 }
 
 .icard-subtitle {
@@ -767,4 +778,140 @@ ol li ol li ol {
 .icard-description {
   grid-area: description;
   font-size: .85em;
+  border: 1px solid transparent;
+}
+
+/* Sidebars (\LeftBar/\RightBar): a narrow column running the full
+   height of the card, holding an icon, a rotated header label, and a
+   stack of further icons -- any of which may be empty (see :empty
+   above). Intentionally text-only, no image-icon support (\card's old
+   is-this-an-image star flags didn't carry over either). */
+.icard-leftbar,
+.icard-rightbar {
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .4em;
+  padding: .3em;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+.icard-leftbar {
+  grid-area: leftbar;
+}
+
+.icard-rightbar {
+  grid-area: rightbar;
+}
+
+.icard-bar-icon {
+  width: 1.6em;
+  height: 1.6em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #888;
+  border-radius: var(--radius);
+  font-size: .8em;
+}
+
+.icard-bar-header {
+  writing-mode: vertical-rl;
+  font-size: .85em;
+}
+
+.icard-leftbar .icard-bar-header {
+  transform: rotate(180deg);
+}
+
+.icard-bar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: .3em;
+}
+
+.icard-stack-item {
+  width: 1.3em;
+  height: 1.3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #888;
+  border-radius: var(--radius);
+  font-size: .7em;
+}
+
+/* \SetOutline* markers: see the macros' own comment in
+   latex-preamble.tree for why this -- rather than forester's \put/\get
+   -- is how a setter call reaches a sibling element. Each marker is
+   itself invisible; :has() applies the matching color to whichever
+   component it names, wherever in the card it was called from. Extend
+   this list to support more colors. */
+.icard-outline {
+  display: none;
+}
+
+.icard:has(> .icard-outline[data-target="titlebox"][data-color="black"]) .icard-title,
+.icard:has(> .icard-outline[data-target="descbox"][data-color="black"]) .icard-description,
+.icard:has(> .icard-outline[data-target="leftbar"][data-color="black"]) .icard-leftbar,
+.icard:has(> .icard-outline[data-target="rightbar"][data-color="black"]) .icard-rightbar {
+  border-color: black;
+}
+
+.icard:has(> .icard-outline[data-target="titlebox"][data-color="white"]) .icard-title,
+.icard:has(> .icard-outline[data-target="descbox"][data-color="white"]) .icard-description,
+.icard:has(> .icard-outline[data-target="leftbar"][data-color="white"]) .icard-leftbar,
+.icard:has(> .icard-outline[data-target="rightbar"][data-color="white"]) .icard-rightbar {
+  border-color: white;
+}
+
+.icard:has(> .icard-outline[data-target="titlebox"][data-color="gray"]) .icard-title,
+.icard:has(> .icard-outline[data-target="descbox"][data-color="gray"]) .icard-description,
+.icard:has(> .icard-outline[data-target="leftbar"][data-color="gray"]) .icard-leftbar,
+.icard:has(> .icard-outline[data-target="rightbar"][data-color="gray"]) .icard-rightbar {
+  border-color: gray;
+}
+
+.icard:has(> .icard-outline[data-target="titlebox"][data-color="red"]) .icard-title,
+.icard:has(> .icard-outline[data-target="descbox"][data-color="red"]) .icard-description,
+.icard:has(> .icard-outline[data-target="leftbar"][data-color="red"]) .icard-leftbar,
+.icard:has(> .icard-outline[data-target="rightbar"][data-color="red"]) .icard-rightbar {
+  border-color: red;
+}
+
+.icard:has(> .icard-outline[data-target="titlebox"][data-color="orange"]) .icard-title,
+.icard:has(> .icard-outline[data-target="descbox"][data-color="orange"]) .icard-description,
+.icard:has(> .icard-outline[data-target="leftbar"][data-color="orange"]) .icard-leftbar,
+.icard:has(> .icard-outline[data-target="rightbar"][data-color="orange"]) .icard-rightbar {
+  border-color: orange;
+}
+
+.icard:has(> .icard-outline[data-target="titlebox"][data-color="yellow"]) .icard-title,
+.icard:has(> .icard-outline[data-target="descbox"][data-color="yellow"]) .icard-description,
+.icard:has(> .icard-outline[data-target="leftbar"][data-color="yellow"]) .icard-leftbar,
+.icard:has(> .icard-outline[data-target="rightbar"][data-color="yellow"]) .icard-rightbar {
+  border-color: yellow;
+}
+
+.icard:has(> .icard-outline[data-target="titlebox"][data-color="green"]) .icard-title,
+.icard:has(> .icard-outline[data-target="descbox"][data-color="green"]) .icard-description,
+.icard:has(> .icard-outline[data-target="leftbar"][data-color="green"]) .icard-leftbar,
+.icard:has(> .icard-outline[data-target="rightbar"][data-color="green"]) .icard-rightbar {
+  border-color: green;
+}
+
+.icard:has(> .icard-outline[data-target="titlebox"][data-color="blue"]) .icard-title,
+.icard:has(> .icard-outline[data-target="descbox"][data-color="blue"]) .icard-description,
+.icard:has(> .icard-outline[data-target="leftbar"][data-color="blue"]) .icard-leftbar,
+.icard:has(> .icard-outline[data-target="rightbar"][data-color="blue"]) .icard-rightbar {
+  border-color: blue;
+}
+
+.icard:has(> .icard-outline[data-target="titlebox"][data-color="purple"]) .icard-title,
+.icard:has(> .icard-outline[data-target="descbox"][data-color="purple"]) .icard-description,
+.icard:has(> .icard-outline[data-target="leftbar"][data-color="purple"]) .icard-leftbar,
+.icard:has(> .icard-outline[data-target="rightbar"][data-color="purple"]) .icard-rightbar {
+  border-color: purple;
 }
