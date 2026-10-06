@@ -86,31 +86,36 @@
     </li>
   </xsl:template>
 
-  <xsl:template match="f:meta[@name='started']">
+  <xsl:template match="f:meta[@name='supervised by']">
     <li class="meta-item">
-      <xsl:text>Started: </xsl:text>
+      <xsl:text>Supervised by: </xsl:text>
       <xsl:apply-templates />
     </li>
   </xsl:template>
 
-  <xsl:template match="f:meta[@name='submitted']">
+  <xsl:template match="f:meta[@name='led by']">
     <li class="meta-item">
-      <xsl:text>Submitted: </xsl:text>
+      <xsl:text>Led by: </xsl:text>
       <xsl:apply-templates />
     </li>
   </xsl:template>
 
-
-  <xsl:template match="f:meta[@name='viva date']">
+  <xsl:template match="f:meta[@name='members']">
     <li class="meta-item">
-      <xsl:text>Viva: </xsl:text>
+      <xsl:text>Members: </xsl:text>
       <xsl:apply-templates />
     </li>
   </xsl:template>
 
-  <xsl:template match="f:meta[@name='completed']">
+  <xsl:template match="f:meta[@name='authors']">
     <li class="meta-item">
-      <xsl:text>Completed: </xsl:text>
+      <xsl:text>Authors: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='timeline']">
+    <li class="meta-item">
       <xsl:apply-templates />
     </li>
   </xsl:template>
@@ -167,27 +172,6 @@
     </li>
   </xsl:template>
 
-  <xsl:template match="f:meta[@name='supervised by']">
-    <li class="meta-item">
-      <xsl:text>Supervised by: </xsl:text>
-      <xsl:apply-templates />
-    </li>
-  </xsl:template>
-
-  <xsl:template match="f:meta[@name='led by']">
-    <li class="meta-item">
-      <xsl:text>Led by: </xsl:text>
-      <xsl:apply-templates />
-    </li>
-  </xsl:template>
-
-  <xsl:template match="f:meta[@name='members']">
-    <li class="meta-item">
-      <xsl:text>Members: </xsl:text>
-      <xsl:apply-templates />
-    </li>
-  </xsl:template>
-
   <xsl:template match="f:meta[@name='external']">
     <li class="meta-item">
       <a class="link external" href="{.}">
@@ -201,6 +185,42 @@
       <a class="link external" href="{.}">
         <xsl:text>External</xsl:text>
       </a>
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='started']">
+    <li class="meta-item">
+      <xsl:text>Started: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='submitted']">
+    <li class="meta-item">
+      <xsl:text>Submitted: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+
+  <xsl:template match="f:meta[@name='viva date']">
+    <li class="meta-item">
+      <xsl:text>Viva: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='completed']">
+    <li class="meta-item">
+      <xsl:text>Completed: </xsl:text>
+      <xsl:apply-templates />
+    </li>
+  </xsl:template>
+
+  <xsl:template match="f:meta[@name='graduated']">
+    <li class="meta-item">
+      <xsl:text>Graduated: </xsl:text>
+      <xsl:apply-templates />
     </li>
   </xsl:template>
 

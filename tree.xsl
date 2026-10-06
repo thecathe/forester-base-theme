@@ -236,21 +236,24 @@
           <xsl:if test="not(f:meta[@name = 'author']/.='false')">
             <xsl:apply-templates select="f:authors" />
           </xsl:if>
-          <xsl:apply-templates select="f:meta[@name='started']" />
-          <xsl:apply-templates select="f:meta[@name='submitted']" />
-          <xsl:apply-templates select="f:meta[@name='viva date']" />
-          <xsl:apply-templates select="f:meta[@name='completed']" />
+          <xsl:apply-templates select="f:meta[@name='timeline']" />
           <xsl:apply-templates select="f:meta[@name='position']" />
           <xsl:apply-templates select="f:meta[@name='institution']" />
           <xsl:apply-templates select="f:meta[@name='supervised by']" />
           <xsl:apply-templates select="f:meta[@name='led by']" />
           <xsl:apply-templates select="f:meta[@name='members']" />
+          <xsl:apply-templates select="f:meta[@name='authors']" />
           <xsl:apply-templates select="f:meta[@name='venue']" />
           <xsl:apply-templates select="f:meta[@name='source']" />
           <xsl:apply-templates select="f:meta[@name='doi']" />
           <xsl:apply-templates select="f:meta[@name='orcid']" />
           <xsl:apply-templates select="f:meta[@name='external']" />
           <xsl:apply-templates select="f:meta[@name='redirect']" />
+          <xsl:apply-templates select="f:meta[@name='started']" />
+          <xsl:apply-templates select="f:meta[@name='submitted']" />
+          <xsl:apply-templates select="f:meta[@name='viva date']" />
+          <xsl:apply-templates select="f:meta[@name='completed']" />
+          <xsl:apply-templates select="f:meta[@name='graduated']" />
           <xsl:apply-templates select="f:meta[@name='slides']" />
           <xsl:apply-templates select="f:meta[@name='video']" />
         </ul>
