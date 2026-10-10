@@ -57,6 +57,7 @@
   <xsl:template match="f:tree" mode="tree-taxon-with-number">
     <xsl:param name="suffix" select="''" />
     <xsl:param name="taxon" select="f:frontmatter/f:taxon" />
+    <xsl:param name="taxon-href" select="f:frontmatter/f:taxon/@href" />
     <xsl:param name="number" select="f:frontmatter/f:number" />
     <xsl:param name="fallback-number" />
     <xsl:param name="in-backmatter" select="ancestor::f:backmatter" />
@@ -69,7 +70,17 @@
     <xsl:variable name="should-number" select="$number != '' or (not($in-backmatter) and not($tree-is-root) and not($explicitly-unnumbered)) and not($implicitly-unnumbered)" />
 
     <xsl:if test="$taxon != ''">
-      <xsl:value-of select="$taxon" />
+      <xsl:choose>
+        <!-- The compiler sets @href when the taxon has a generated page. -->
+        <xsl:when test="$taxon-href != ''">
+          <a class="link local taxon-link" href="{$taxon-href}">
+            <xsl:value-of select="$taxon" />
+          </a>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="$taxon" />
+        </xsl:otherwise>
+      </xsl:choose>
       <xsl:if test="$should-number or $fallback-number != ''">
         <xsl:text>&#160;</xsl:text>
       </xsl:if>
