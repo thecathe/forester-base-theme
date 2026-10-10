@@ -172,19 +172,22 @@
     </li>
   </xsl:template>
 
-  <xsl:template match="f:meta[@name='external']">
+  <xsl:template match="f:meta[@name='external']|f:meta[@name='redirect']">
     <li class="meta-item">
-      <a class="link external" href="{.}">
-        <xsl:value-of select="." />
-      </a>
-    </li>
-  </xsl:template>
-
-  <xsl:template match="f:meta[@name='redirect']">
-    <li class="meta-item">
-      <a class="link external" href="{.}">
-        <xsl:text>External</xsl:text>
-      </a>
+      <xsl:choose>
+        <!-- Rich content such as [foo.com](https://foo.com): `.` would be the
+             link text only, giving a relative href, so use the link's href. -->
+        <xsl:when test=".//f:link/@href">
+          <a class="link external" href="{(.//f:link/@href)[1]}">
+            <xsl:value-of select="(.//f:link)[1]" />
+          </a>
+        </xsl:when>
+        <xsl:otherwise>
+          <a class="link external" href="{.}">
+            <xsl:value-of select="." />
+          </a>
+        </xsl:otherwise>
+      </xsl:choose>
     </li>
   </xsl:template>
 
