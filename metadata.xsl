@@ -172,7 +172,7 @@
     </li>
   </xsl:template>
 
-  <xsl:template match="f:meta[@name='external']">
+  <xsl:template match="f:meta[@name='external']|f:meta[@name='redirect']">
     <li class="meta-item">
       <xsl:choose>
         <!-- Rich content such as [foo.com](https://foo.com): `.` would be the
@@ -188,14 +188,6 @@
           </a>
         </xsl:otherwise>
       </xsl:choose>
-    </li>
-  </xsl:template>
-
-  <xsl:template match="f:meta[@name='redirect']">
-    <li class="meta-item">
-      <a class="link external" href="{.}">
-        <xsl:text>External</xsl:text>
-      </a>
     </li>
   </xsl:template>
 
