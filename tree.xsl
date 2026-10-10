@@ -256,6 +256,7 @@
           <xsl:apply-templates select="f:meta[@name='graduated']" />
           <xsl:apply-templates select="f:meta[@name='slides']" />
           <xsl:apply-templates select="f:meta[@name='video']" />
+          <xsl:apply-templates select="f:tags" />
         </ul>
       </div>
     </header>

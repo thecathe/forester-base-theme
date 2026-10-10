@@ -243,4 +243,25 @@
     </li>
   </xsl:template>
 
+  <xsl:template match="f:tags">
+    <li class="meta-item tags">
+      <xsl:text>Tags: </xsl:text>
+      <xsl:for-each select="f:tag">
+        <xsl:if test="position() &gt; 1">
+          <xsl:text>, </xsl:text>
+        </xsl:if>
+        <xsl:choose>
+          <xsl:when test="@href">
+            <a class="link local" href="{@href}">
+              <xsl:value-of select="@name" />
+            </a>
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:value-of select="@name" />
+          </xsl:otherwise>
+        </xsl:choose>
+      </xsl:for-each>
+    </li>
+  </xsl:template>
+
 </xsl:stylesheet>
