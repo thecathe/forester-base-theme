@@ -623,25 +623,72 @@ ol li ol li ol {
  color: white;
 }
 
-/* Flip cards (see \flipcard in latex-preamble.tree): a hidden checkbox
-   drives the flip, so clicking the card toggles it with no JavaScript,
-   and it always starts unchecked (front) on every page load. */
-.flip-card {
-  --flip-card-wobble-shift: 1.5px;
-  position: relative;
+/* Deliberate breathing room for a \padded{...}-wrapped \tex{}{} artefact
+   (e.g. inline math), now that build-forest crops every such SVG to its
+   ink extent by default. Tune to taste. */
+.padded {
+  display: inline-block;
+  padding: .15em .3em;
+}
+
+/* Boxes (see box.tree): a \box is a classed div, and what it looks like
+   and does is chosen by words that become class tokens -- layout, size,
+   ratio and behaviour. The compositors \icard and \flipcard pass their
+   words down to the boxes they build. Which markup structure a thing
+   has (flip, reveal, cols) is chosen by the macro, never by a word. */
+
+.box {
+  box-sizing: border-box;
+}
+
+/* Size and ratio tokens only set custom properties; a rule below reads
+   them on the same element that set them, so a nested box never picks up
+   its parent's size through inheritance. `portrait md` is a 14em, 5:8
+   card. */
+.box.sm { --w: 10em; }
+.box.md { --w: 14em; }
+.box.lg { --w: 20em; }
+
+.box.portrait { --ar: 5 / 8; }
+.box.landscape { --ar: 8 / 5; }
+.box.square { --ar: 1; }
+.box.wide { --ar: 16 / 9; }
+
+/* A box with a size token sits in the line, so cards stand side by side;
+   without one it is an ordinary block. */
+.box:is(.sm, .md, .lg) {
   display: inline-block;
   vertical-align: top;
-  width: 14em;
+  width: var(--w);
   margin: 0 .5em .5em 0;
-  cursor: pointer;
-  -webkit-perspective: 1200px;
-  perspective: 1200px;
-  /* The wobble animation is always attached but paused/zero-iteration
-     at rest, so it just sits on its 0% keyframe (neutral); :hover below
-     only changes pacing and play-state to set it going, rather than
-     defining the animation fresh on hover. */
+}
+
+.box:is(.portrait, .landscape, .square, .wide) {
+  aspect-ratio: var(--ar);
+}
+
+/* \sized: the size is whatever the wrapper's style says, and a box
+   placed directly inside fills it (so a size token on that inner box
+   would be overridden: the outermost wrapper owns the size). */
+.sized {
+  box-sizing: border-box;
+}
+
+.sized > .box {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+/* Hover wobble, a behaviour of its own: add the word `wobble` to rock
+   any box. The animation is always attached but zero-iteration and
+   paused at rest, so it just sits on its 0% keyframe (neutral); :hover
+   below only changes pacing and play-state to set it going, rather than
+   defining the animation fresh on hover. */
+.wobble {
+  --wobble-shift: 1.5px;
   transition: rotate .66s ease-in-out;
-  animation-name: flip-card-wobble;
+  animation-name: box-wobble;
   animation-duration: 2s;
   animation-iteration-count: 0;
   animation-timing-function: linear;
@@ -650,55 +697,67 @@ ol li ol li ol {
   animation-direction: alternate-reverse;
 }
 
-.flip-card:hover {
+.wobble:hover {
   animation-duration: 6s;
   animation-iteration-count: infinite;
   animation-play-state: running;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flip-card:hover {
+  .wobble:hover {
     animation-play-state: paused;
   }
 }
 
-/* Lifts and rocks the whole card while hovering, independent of the
-   front/back flip (which only ever transforms .flip-card-inner), so it
-   works the same while showing either face. translate goes through
-   transform rather than the standalone translate property so it can't
-   collide with .flip-card-inner's own rotateY transform if this were
-   ever applied there instead; rotate is independent of transform, so
-   it layers on top of it (and transitions on its own, above). */
-@keyframes flip-card-wobble {
+/* Lifts and rocks the whole box while hovering, independent of any
+   flip inside it (which only ever transforms .flip-inner), so it works
+   the same while showing either face. translate goes through transform
+   rather than the standalone translate property so it can't collide
+   with .flip-inner's own rotateY transform if this were ever applied
+   there instead; rotate is independent of transform, so it layers on
+   top of it (and transitions on its own, above). */
+@keyframes box-wobble {
   0%, 100% { transform: translate(0, 0); rotate: 0deg; }
-  20% { transform: translate(var(--flip-card-wobble-shift), calc(-4px - var(--flip-card-wobble-shift))); rotate: -2deg; }
-  40% { transform: translate(var(--flip-card-wobble-shift), calc(-4px + var(--flip-card-wobble-shift))); rotate: 4deg; }
-  60% { transform: translate(var(--flip-card-wobble-shift), calc(-4px + var(--flip-card-wobble-shift))); rotate: 3deg; }
-  80% { transform: translate(var(--flip-card-wobble-shift), calc(-4px + var(--flip-card-wobble-shift))); rotate: -3deg; }
+  20% { transform: translate(var(--wobble-shift), calc(-4px - var(--wobble-shift))); rotate: -2deg; }
+  40% { transform: translate(var(--wobble-shift), calc(-4px + var(--wobble-shift))); rotate: 4deg; }
+  60% { transform: translate(var(--wobble-shift), calc(-4px + var(--wobble-shift))); rotate: 3deg; }
+  80% { transform: translate(var(--wobble-shift), calc(-4px + var(--wobble-shift))); rotate: -3deg; }
 }
 
-.flip-card-checkbox {
+/* \flip: a hidden checkbox drives the flip, so clicking toggles it with
+   no JavaScript, and it always starts unchecked (front) on every page
+   load. It fills whatever wraps it, and the faces fill it. */
+.flip {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  -webkit-perspective: 1200px;
+  perspective: 1200px;
+}
+
+.flip-checkbox {
   position: absolute;
   inset: 0;
   opacity: 0;
   pointer-events: none;
 }
 
-.flip-card-inner {
+.flip-inner {
   position: relative;
   width: 100%;
-  aspect-ratio: 5 / 8;
+  height: 100%;
   transition: transform .6s;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
 }
 
-.flip-card-checkbox:checked ~ .flip-card-inner {
+.flip-checkbox:checked ~ .flip-inner {
   transform: rotateY(180deg);
 }
 
-.flip-card-front,
-.flip-card-back {
+.flip-face {
   position: absolute;
   inset: 0;
   /* Firefox computes backface-visibility against an element's own
@@ -711,38 +770,63 @@ ol li ol li ol {
   -webkit-backface-visibility: hidden;
 }
 
-.flip-card-back {
+.flip-back {
   transform: rotateY(180deg);
 }
 
-.flip-card-front img,
-.flip-card-back img,
-.flip-card-front .icard,
-.flip-card-back .icard {
+/* A face holds whatever element it was given: a box, a picture. */
+.flip-face > * {
   width: 100%;
   height: 100%;
-}
-
-.flip-card-front img,
-.flip-card-back img {
   object-fit: contain;
 }
 
-/* Deliberate breathing room for a \padded{...}-wrapped \tex{}{} artefact
-   (e.g. inline math), now that build-forest crops every such SVG to its
-   ink extent by default. Tune to taste. */
-.padded {
-  display: inline-block;
-  padding: .15em .3em;
+/* \reveal: a native details/summary. The theme hides every summary
+   marker (see details>summary above), so this brings its own arrow. */
+.reveal {
+  margin: .4em 0;
 }
 
-/* \icard (see latex-preamble.tree): a \card rendered as real HTML, so
-   it can hold real forester content (links, etc.) instead of a flat
-   LaTeX-rendered image. \Title/\Description/\Image/\SetOutline* can be
-   called in any order -- grid-template-areas and :has() (further down)
-   fix their on-screen position/effect regardless of call order. */
-.icard {
-  box-sizing: border-box;
+.reveal > summary {
+  cursor: pointer;
+}
+
+.reveal > summary::before {
+  content: "\25B8\00a0";
+}
+
+.reveal[open] > summary::before {
+  content: "\25BE\00a0";
+}
+
+.reveal-body {
+  margin-top: .3em;
+}
+
+/* \cols: the ratio comes from the macro as --cols. */
+.cols {
+  display: grid;
+  grid-template-columns: var(--cols, 1fr 1fr);
+  gap: 1em;
+  align-items: start;
+}
+
+.col {
+  min-width: 0;
+}
+
+@media (max-width: 40em) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The `card` layout: real HTML, so it can hold real forester content
+   (links, etc.). The field macros (\Title, \Description, \Image,
+   \LeftBar, \RightBar; see box.tree) can be called in any order --
+   grid-template-areas fixes their on-screen position regardless of
+   call order. */
+.box.card {
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-areas:
@@ -752,35 +836,41 @@ ol li ol li ol {
     "leftbar description rightbar";
   grid-template-rows: auto auto 1fr auto;
   gap: .4em;
-  height: 100%;
   padding: .6em;
   border: 1px solid #888;
   border-radius: var(--radius);
   overflow: hidden;
 }
 
+/* The size tokens make a box inline-block, but that is the same
+   specificity as the rule above and this layout is a grid, so a sized
+   card says so again here to keep standing in the line. */
+.box.card:is(.sm, .md, .lg) {
+  display: inline-grid;
+}
+
 /* A field left unset (e.g. no subtitle, no sidebar) still emits its
    div, just empty -- collapse it out rather than reserving blank
    space for it. */
-.icard-title:empty,
-.icard-subtitle:empty,
-.icard-description:empty,
-.icard-leftbar:empty,
-.icard-rightbar:empty,
-.icard-bar-icon:empty,
-.icard-bar-header:empty,
-.icard-bar-stack:empty {
+.box-title:empty,
+.box-subtitle:empty,
+.box-description:empty,
+.box-leftbar:empty,
+.box-rightbar:empty,
+.box-bar-icon:empty,
+.box-bar-header:empty,
+.box-bar-stack:empty {
   display: none;
 }
 
-.icard-title {
+.box-title {
   grid-area: title;
   font-weight: bold;
   text-align: center;
   border: 1px solid transparent;
 }
 
-.icard-subtitle {
+.box-subtitle {
   grid-area: subtitle;
   margin-top: -.4em;
   text-align: center;
@@ -788,7 +878,7 @@ ol li ol li ol {
   color: #666;
 }
 
-.icard-image {
+.box-image {
   grid-area: image;
   min-height: 0;
   width: 100%;
@@ -796,7 +886,7 @@ ol li ol li ol {
   object-fit: contain;
 }
 
-.icard-description {
+.box-description {
   grid-area: description;
   font-size: .85em;
   border: 1px solid transparent;
@@ -805,10 +895,9 @@ ol li ol li ol {
 /* Sidebars (\LeftBar/\RightBar): a narrow column running the full
    height of the card, holding an icon, a rotated header label, and a
    stack of further icons -- any of which may be empty (see :empty
-   above). Intentionally text-only, no image-icon support (\card's old
-   is-this-an-image star flags didn't carry over either). */
-.icard-leftbar,
-.icard-rightbar {
+   above). Intentionally text-only, no image-icon support. */
+.box-leftbar,
+.box-rightbar {
   grid-row: 1 / -1;
   display: flex;
   flex-direction: column;
@@ -819,15 +908,15 @@ ol li ol li ol {
   border-radius: var(--radius);
 }
 
-.icard-leftbar {
+.box-leftbar {
   grid-area: leftbar;
 }
 
-.icard-rightbar {
+.box-rightbar {
   grid-area: rightbar;
 }
 
-.icard-bar-icon {
+.box-bar-icon {
   width: 1.6em;
   height: 1.6em;
   display: flex;
@@ -838,19 +927,19 @@ ol li ol li ol {
   font-size: .8em;
 }
 
-.icard-bar-header {
+.box-bar-header {
   writing-mode: vertical-rl;
   font-size: .85em;
 }
 
-.icard-leftbar .icard-bar-header {
+.box-leftbar .box-bar-header {
   transform: rotate(180deg);
 }
 
-.icard-bar-stack {
+.box-bar-stack {
   display: flex;
-  /* \card's own stack builds upward from the bottom of the sidebar (the
-     first \StackItem ends up lowest); column-reverse matches that, and
+  /* The stack builds upward from the bottom of the sidebar (the first
+     \StackItem ends up lowest); column-reverse matches that, and
      margin-top: auto (on a flex column parent) pushes the whole stack
      down to flush with the sidebar's bottom edge, away from the
      icon/header group at the top. */
@@ -859,7 +948,7 @@ ol li ol li ol {
   margin-top: auto;
 }
 
-.icard-stack-item {
+.box-stack-item {
   width: 1.3em;
   height: 1.3em;
   display: flex;
@@ -870,75 +959,15 @@ ol li ol li ol {
   font-size: .7em;
 }
 
-/* \SetOutline* markers: see the macros' own comment in
-   latex-preamble.tree for why this -- rather than forester's \put/\get
-   -- is how a setter call reaches a sibling element. Each marker is
-   itself invisible; :has() applies the matching color to whichever
-   component it names, wherever in the card it was called from. Extend
-   this list to support more colors. */
-.icard-outline {
-  display: none;
+/* \outlined: only sets --outline, which the wrapped field reads by
+   inheritance. display: contents keeps the field's own place in the
+   box's grid. A field with no border (an image, the subtitle) shows
+   nothing. Keep this after the slot rules above: their border
+   shorthands reset the colour, and they have the same specificity. */
+.outlined {
+  display: contents;
 }
 
-.icard:has(> .icard-outline[data-target="titlebox"][data-color="black"]) .icard-title,
-.icard:has(> .icard-outline[data-target="descbox"][data-color="black"]) .icard-description,
-.icard:has(> .icard-outline[data-target="leftbar"][data-color="black"]) .icard-leftbar,
-.icard:has(> .icard-outline[data-target="rightbar"][data-color="black"]) .icard-rightbar {
-  border-color: black;
-}
-
-.icard:has(> .icard-outline[data-target="titlebox"][data-color="white"]) .icard-title,
-.icard:has(> .icard-outline[data-target="descbox"][data-color="white"]) .icard-description,
-.icard:has(> .icard-outline[data-target="leftbar"][data-color="white"]) .icard-leftbar,
-.icard:has(> .icard-outline[data-target="rightbar"][data-color="white"]) .icard-rightbar {
-  border-color: white;
-}
-
-.icard:has(> .icard-outline[data-target="titlebox"][data-color="gray"]) .icard-title,
-.icard:has(> .icard-outline[data-target="descbox"][data-color="gray"]) .icard-description,
-.icard:has(> .icard-outline[data-target="leftbar"][data-color="gray"]) .icard-leftbar,
-.icard:has(> .icard-outline[data-target="rightbar"][data-color="gray"]) .icard-rightbar {
-  border-color: gray;
-}
-
-.icard:has(> .icard-outline[data-target="titlebox"][data-color="red"]) .icard-title,
-.icard:has(> .icard-outline[data-target="descbox"][data-color="red"]) .icard-description,
-.icard:has(> .icard-outline[data-target="leftbar"][data-color="red"]) .icard-leftbar,
-.icard:has(> .icard-outline[data-target="rightbar"][data-color="red"]) .icard-rightbar {
-  border-color: red;
-}
-
-.icard:has(> .icard-outline[data-target="titlebox"][data-color="orange"]) .icard-title,
-.icard:has(> .icard-outline[data-target="descbox"][data-color="orange"]) .icard-description,
-.icard:has(> .icard-outline[data-target="leftbar"][data-color="orange"]) .icard-leftbar,
-.icard:has(> .icard-outline[data-target="rightbar"][data-color="orange"]) .icard-rightbar {
-  border-color: orange;
-}
-
-.icard:has(> .icard-outline[data-target="titlebox"][data-color="yellow"]) .icard-title,
-.icard:has(> .icard-outline[data-target="descbox"][data-color="yellow"]) .icard-description,
-.icard:has(> .icard-outline[data-target="leftbar"][data-color="yellow"]) .icard-leftbar,
-.icard:has(> .icard-outline[data-target="rightbar"][data-color="yellow"]) .icard-rightbar {
-  border-color: yellow;
-}
-
-.icard:has(> .icard-outline[data-target="titlebox"][data-color="green"]) .icard-title,
-.icard:has(> .icard-outline[data-target="descbox"][data-color="green"]) .icard-description,
-.icard:has(> .icard-outline[data-target="leftbar"][data-color="green"]) .icard-leftbar,
-.icard:has(> .icard-outline[data-target="rightbar"][data-color="green"]) .icard-rightbar {
-  border-color: green;
-}
-
-.icard:has(> .icard-outline[data-target="titlebox"][data-color="blue"]) .icard-title,
-.icard:has(> .icard-outline[data-target="descbox"][data-color="blue"]) .icard-description,
-.icard:has(> .icard-outline[data-target="leftbar"][data-color="blue"]) .icard-leftbar,
-.icard:has(> .icard-outline[data-target="rightbar"][data-color="blue"]) .icard-rightbar {
-  border-color: blue;
-}
-
-.icard:has(> .icard-outline[data-target="titlebox"][data-color="purple"]) .icard-title,
-.icard:has(> .icard-outline[data-target="descbox"][data-color="purple"]) .icard-description,
-.icard:has(> .icard-outline[data-target="leftbar"][data-color="purple"]) .icard-leftbar,
-.icard:has(> .icard-outline[data-target="rightbar"][data-color="purple"]) .icard-rightbar {
-  border-color: purple;
+.outlined > * {
+  border-color: var(--outline);
 }
