@@ -724,6 +724,28 @@ ol li ol li ol {
   80% { transform: translate(var(--wobble-shift), calc(-4px + var(--wobble-shift))); rotate: -3deg; }
 }
 
+/* Hover rise, the simple alternative to wobble: add the word `hover`
+   and the box lifts a few pixels while the pointer is over it. Give one
+   word or the other, not both: a running wobble animation overrides this
+   transform. */
+.hover {
+  transition: transform .2s ease-out;
+}
+
+.hover:hover {
+  transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover {
+    transition: none;
+  }
+
+  .hover:hover {
+    transform: none;
+  }
+}
+
 /* \flip: a hidden checkbox drives the flip, so clicking toggles it with
    no JavaScript, and it always starts unchecked (front) on every page
    load. It fills whatever wraps it, and the faces fill it. */
