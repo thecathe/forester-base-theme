@@ -177,7 +177,6 @@ function init() {
   let current = -1;
   let step = 0;
   let presenting = false;
-  let goFullscreenOnKey = false;
   let resume = null;
   let gotoMode = 'sections';
   let whereLabel = '';
@@ -320,7 +319,6 @@ function init() {
   function exit() {
     if (!presenting) return;
     presenting = false;
-    goFullscreenOnKey = false;
     // Where to pick up again, unless that is just the start.
     resume = current > 0 || step > 0 ? { index: current, step } : null;
     updateResume();
@@ -414,14 +412,9 @@ function init() {
     else handled = false;
     if (!handled) return;
     e.preventDefault();
-    // Opened from a link, the stage fills the window; the first key may take the whole screen.
-    if (goFullscreenOnKey && e.key !== 'Escape') {
-      goFullscreenOnKey = false;
-      if (e.key !== 'f' && e.key !== 'F') enterFullscreen();
-    }
   });
 
-  function followAddress(onLoad) {
+  function followAddress() {
     const target = parseHash(location.hash);
     if (!target) {
       clearError();
@@ -431,12 +424,11 @@ function init() {
       showError(target.error);
       return;
     }
-    if (!presenting && onLoad) goFullscreenOnKey = true;
     // The address already names this slide, so it stays as it was written until a key moves on.
     enter(target.index, 0, false);
   }
-  window.addEventListener('hashchange', () => followAddress(false));
-  followAddress(true);
+  window.addEventListener('hashchange', followAddress);
+  followAddress();
 
   // Recheck what fits when the size changes and when the maths and fonts have arrived.
   window.addEventListener('resize', checkOverflow);
