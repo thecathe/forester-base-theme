@@ -276,7 +276,7 @@ body.presenting .deck-hud:focus-within {
     margin: 0;
     padding: 0 4%;
     overflow: hidden;
-    break-before: page;
+    break-after: page;
     break-inside: avoid;
     border-radius: 0;
     font-size: 28.16px;
