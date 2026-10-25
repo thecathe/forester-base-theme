@@ -1,0 +1,320 @@
+/* SPDX-License-Identifier: CC0-1.0 */
+
+/* Deck mode. Loaded on deck pages only (see deck.xsl), so nothing here can touch any other page.
+
+   A deck page marks its structure itself, at build time: data-deck="deck|section|slide" on the
+   <section> of each unit. deck.js adds `body.presenting` while presenting, and `.current` on the
+   slide being shown and `.in-chain` on the sections around it. Print needs no script: every
+   slide becomes a page. The slide look is written twice, once for presenting and once for print,
+   because a media query cannot be shared with a class selector; keep the two in step. */
+
+/* ---- on the ordinary page ---- */
+
+.deck-present {
+  font: inherit;
+  font-size: .9em;
+  padding: 0 .6em;
+  color: inherit;
+  background: transparent;
+  border: 1px solid #888;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.deck-present:hover {
+  background: rgba(0, 100, 255, .08);
+}
+
+/* A link to a slide that does not exist (a problem with the address, shown in either mode). */
+.deck-error {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  padding: .4em 1em;
+  font: 11pt/1.3 system-ui, sans-serif;
+  color: #fff;
+  background: #b00020;
+}
+
+.deck-error[hidden],
+.deck-warn[hidden] {
+  display: none;
+}
+
+.deck-hud {
+  display: none;
+}
+
+/* ---- presenting ---- */
+
+body.presenting {
+  margin: 0;
+  overflow: hidden;
+  background: #1c1c1c;
+  transition: none;
+}
+
+body.presenting > header,
+body.presenting #toc,
+body.presenting article > footer {
+  display: none;
+}
+
+body.presenting #grid-wrapper {
+  display: block;
+}
+
+body.presenting #grid-wrapper > article {
+  max-width: none;
+  margin: 0;
+}
+
+body.presenting .block:hover {
+  background: none;
+}
+
+/* Only the slide on show, and the sections around it, are laid out; and of those sections
+   only the units. Their own heading, prose and metadata are not presented. */
+body.presenting section[data-deck]:not(.in-chain):not(.current) {
+  display: none;
+}
+
+body.presenting section[data-deck].in-chain,
+body.presenting section[data-deck].in-chain > details {
+  margin: 0;
+  padding: 0;
+}
+
+body.presenting section[data-deck].in-chain > details > :not(section[data-deck]) {
+  display: none;
+}
+
+/* The stage: 16:9, as large as fits, centred; the text scales with it. */
+body.presenting section[data-deck="slide"].current {
+  --stage-w: min(100vw, 177.7778vh);
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  width: var(--stage-w);
+  height: calc(var(--stage-w) * 9 / 16);
+  margin: auto;
+  padding: 0 4%;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 0;
+  font-size: calc(var(--stage-w) * .022);
+  line-height: 1.35;
+  hyphens: manual;
+}
+
+body.presenting section[data-deck="slide"].current > details {
+  margin: 0;
+}
+
+body.presenting section[data-deck="slide"].current > details > summary {
+  pointer-events: none;
+}
+
+body.presenting section[data-deck="slide"].current > details > summary > header {
+  display: block;
+  margin: 0 0 .5em;
+}
+
+body.presenting section[data-deck="slide"].current > details > summary > header > h1 {
+  display: block;
+  margin: .7em 0 0;
+  font-size: 1.7em;
+  line-height: 1.15;
+}
+
+body.presenting section[data-deck="slide"].current > details > summary > header > h1 > .taxon,
+body.presenting section[data-deck="slide"].current > details > summary > header > h1 > a.slug,
+body.presenting section[data-deck="slide"].current > details > summary > header .metadata {
+  display: none;
+}
+
+body.presenting section[data-deck="slide"].current pre {
+  font-size: .75em;
+}
+
+body.presenting section[data-deck="slide"].current img {
+  max-width: 100%;
+}
+
+/* A step that has not come yet keeps its place, so nothing jumps. */
+body.presenting .deck-hidden {
+  visibility: hidden;
+}
+
+/* The bar along the bottom: quiet until the pointer or focus is on it. */
+body.presenting .deck-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: .3em .8em;
+  font: 13px/1.2 system-ui, sans-serif;
+  color: #8a8a8a;
+  background: transparent;
+  opacity: .7;
+  transition: opacity .15s, background-color .15s, color .15s;
+}
+
+body.presenting .deck-hud:hover,
+body.presenting .deck-hud:focus-within {
+  color: #eee;
+  background: rgba(0, 0, 0, .75);
+  opacity: 1;
+}
+
+.deck-hud button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: .15em .6em;
+  cursor: pointer;
+}
+
+.deck-hud button:hover {
+  background: rgba(255, 255, 255, .2);
+}
+
+.deck-hud button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+.deck-where {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: .85;
+  cursor: help;
+}
+
+.deck-controls {
+  display: flex;
+  align-items: center;
+  gap: .4em;
+}
+
+.deck-count {
+  min-width: 6em;
+  text-align: center;
+}
+
+.deck-warn {
+  color: #ff8a80;
+  font-weight: 700;
+  cursor: help;
+}
+
+/* ---- print: one slide a page ---- */
+
+@media print {
+  @page {
+    size: 1280px 720px;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body > header,
+  #toc,
+  ninja-keys,
+  article > footer,
+  .deck-hud,
+  .deck-error {
+    display: none !important;
+  }
+
+  #grid-wrapper {
+    display: block !important;
+  }
+
+  #grid-wrapper > article {
+    max-width: none;
+    margin: 0;
+  }
+
+  section[data-deck="deck"],
+  section[data-deck="section"] {
+    margin: 0;
+    padding: 0;
+  }
+
+  section[data-deck="deck"] > details,
+  section[data-deck="section"] > details {
+    margin: 0;
+  }
+
+  section[data-deck="deck"] > details > :not(section[data-deck]),
+  section[data-deck="section"] > details > :not(section[data-deck]) {
+    display: none;
+  }
+
+  section[data-deck="slide"] {
+    box-sizing: border-box;
+    width: 1280px;
+    height: 720px;
+    margin: 0;
+    padding: 0 4%;
+    overflow: hidden;
+    break-before: page;
+    break-inside: avoid;
+    border-radius: 0;
+    font-size: 28.16px;
+    line-height: 1.35;
+    hyphens: manual;
+  }
+
+  section[data-deck="slide"] > details {
+    margin: 0;
+  }
+
+  section[data-deck="slide"] > details > summary {
+    pointer-events: none;
+  }
+
+  section[data-deck="slide"] > details > summary > header {
+    display: block;
+    margin: 0 0 .5em;
+  }
+
+  section[data-deck="slide"] > details > summary > header > h1 {
+    display: block;
+    margin: .7em 0 0;
+    font-size: 1.7em;
+    line-height: 1.15;
+  }
+
+  section[data-deck="slide"] > details > summary > header > h1 > .taxon,
+  section[data-deck="slide"] > details > summary > header > h1 > a.slug,
+  section[data-deck="slide"] > details > summary > header .metadata {
+    display: none;
+  }
+
+  section[data-deck="slide"] pre {
+    font-size: .75em;
+  }
+
+  section[data-deck="slide"] img {
+    max-width: 100%;
+  }
+}
