@@ -164,7 +164,11 @@ function init() {
   const modeSlides = button('deck-mode', 'Slides', 'List every slide', () => setGotoMode('slides'));
   const modes = el('span', 'deck-modes');
   modes.append(modeSections, modeSlides);
+  // The link and the word "copied" share one cell of a grid, so showing either leaves the width alone.
+  const whereName = el('span', 'deck-where-name');
+  const whereDone = el('span', 'deck-where-done', 'copied');
   const whereText = el('span', 'deck-where-text');
+  whereText.append(whereName, whereDone);
   const whereIcon = el('span', 'deck-where-icon');
   whereIcon.append(icon('copy'));
   const where = button('deck-where', '', '', () => copyLink());
@@ -264,7 +268,7 @@ function init() {
     nextButton.disabled = current === last && step === steps;
     const links = linksTo(current);
     whereLabel = links[0];
-    whereText.textContent = whereLabel;
+    whereName.textContent = whereLabel;
     where.title = `Copy a link to this slide. Links that reach it: ${links.map((l) => '#' + l).join('   ')}`;
     syncGoto();
   }
@@ -277,10 +281,10 @@ function init() {
       window.prompt('A link to this slide:', url);
       return;
     }
-    whereText.textContent = 'copied';
+    where.classList.add('copied');
     whereIcon.replaceChildren(icon('check'));
     setTimeout(() => {
-      whereText.textContent = whereLabel;
+      where.classList.remove('copied');
       whereIcon.replaceChildren(icon('copy'));
     }, 1200);
   }

@@ -49,10 +49,7 @@
 
 /* The small button beside Resume that shows where on the page you stopped. */
 .deck-present.deck-icon-button {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 .4em;
-  line-height: 1.4;
+  padding: 0 .45em;
 }
 
 .deck-resume .deck-present + .deck-present {
@@ -369,9 +366,22 @@ body.presenting.deck-fullscreen .deck-bar .deck-stop {
 }
 
 .deck-where-text {
+  display: inline-grid;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.deck-where-name,
+.deck-where-done {
+  grid-area: 1 / 1;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.deck-where:not(.copied) .deck-where-done,
+.deck-where.copied .deck-where-name {
+  visibility: hidden;
 }
 
 .deck-where-icon {
