@@ -61,6 +61,33 @@ body.presenting .deck-error {
   display: none;
 }
 
+/* ---- layouts for things that arrive in steps (trees/meta/fragments.tree) ---- */
+
+/* \steps: text on one side and a picture on the other, a row for each step. */
+.steps {
+  display: grid;
+  grid-template-columns: var(--cols, 1fr 1fr);
+  column-gap: 1.5em;
+  row-gap: .6em;
+  align-items: start;
+  margin: .5em 0;
+}
+
+.steps > .step {
+  display: contents;
+}
+
+/* \qa: the answer sits under its question, set off. */
+.qa-question {
+  font-weight: 700;
+}
+
+.qa-answer {
+  margin-top: .5em;
+  padding-left: .8em;
+  border-left: .2em solid #5b9cf0;
+}
+
 /* ---- presenting ---- */
 
 body.presenting {

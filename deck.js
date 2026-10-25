@@ -12,8 +12,9 @@
 // names a slide which is not there is shown as an error.
 //
 // Steps: an element with data-step-from="a" (and, if it goes away again, data-step-until="b") is
-// shown from step a up to, but not including, step b. "Next" takes the next step of the slide on
-// show and, when there are none left, the next slide.
+// shown from step a up to, but not including, step b. \fragment, \incremental, \qa and \steps
+// (trees/meta/fragments.tree) write elements that are numbered automatically. "Next" takes the next
+// step of the slide on show and, when there are none left, the next slide.
 //
 // While presenting, a toolbar sits above the slide (below it, faint, over the slide's edge, when the
 // window is full screen); the page itself comes back when presenting stops.
@@ -98,16 +99,21 @@ function init() {
     return { index: inside[n - 1] };
   }
 
-  // Steps of a slide, worked out once.
+  // The steps of a slide, worked out once. A fragment (see trees/meta/fragments.tree) is anything
+  // with data-step-from, a .fragment, or an item of a list inside an .incremental. The ones that
+  // do not say which step they arrive on are numbered in the order they are written, after
+  // whichever step came before.
+  const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li';
   const stepCache = new WeakMap();
   function stepsOf(slide) {
     let s = stepCache.get(slide);
     if (!s) {
-      const list = [...slide.querySelectorAll('[data-step-from]')].map((el) => ({
-        el,
-        from: Number(el.dataset.stepFrom) || 0,
-        until: el.dataset.stepUntil === undefined ? null : Number(el.dataset.stepUntil),
-      }));
+      let counter = 0;
+      const list = [...slide.querySelectorAll(FRAGMENTS)].map((el) => {
+        const from = el.dataset.stepFrom === undefined ? counter + 1 : Number(el.dataset.stepFrom) || 0;
+        counter = Math.max(counter, from);
+        return { el, from, until: el.dataset.stepUntil === undefined ? null : Number(el.dataset.stepUntil) };
+      });
       s = { list, count: Math.max(0, ...list.map((f) => Math.max(f.from, f.until ?? 0))) };
       stepCache.set(slide, s);
     }
