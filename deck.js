@@ -164,7 +164,11 @@ function init() {
   const modeSlides = button('deck-mode', 'Slides', 'List every slide', () => setGotoMode('slides'));
   const modes = el('span', 'deck-modes');
   modes.append(modeSections, modeSlides);
+  // The link and the word "copied" share one cell of a grid, so showing either leaves the width alone.
+  const whereName = el('span', 'deck-where-name');
+  const whereDone = el('span', 'deck-where-done', 'copied');
   const whereText = el('span', 'deck-where-text');
+  whereText.append(whereName, whereDone);
   const whereIcon = el('span', 'deck-where-icon');
   whereIcon.append(icon('copy'));
   const where = button('deck-where', '', '', () => copyLink());
@@ -264,7 +268,7 @@ function init() {
     nextButton.disabled = current === last && step === steps;
     const links = linksTo(current);
     whereLabel = links[0];
-    whereText.textContent = whereLabel;
+    whereName.textContent = whereLabel;
     where.title = `Copy a link to this slide. Links that reach it: ${links.map((l) => '#' + l).join('   ')}`;
     syncGoto();
   }
@@ -277,10 +281,10 @@ function init() {
       window.prompt('A link to this slide:', url);
       return;
     }
-    whereText.textContent = 'copied';
+    where.classList.add('copied');
     whereIcon.replaceChildren(icon('check'));
     setTimeout(() => {
-      whereText.textContent = whereLabel;
+      where.classList.remove('copied');
       whereIcon.replaceChildren(icon('copy'));
     }, 1200);
   }
@@ -447,25 +451,48 @@ function init() {
     e.preventDefault();
   });
 
-  // Scrolling moves through the steps and slides, once for each flick of a wheel or trackpad however
-  // long its momentum lasts: a pause in the events is what starts a new one.
-  let lastWheel = 0;
-  let spent = false;
-  let pushed = 0;
+  // Scrolling moves through the steps and slides, one move for each flick.
+  //
+  // A trackpad sends a stream of small events, and keeps sending decaying ones (momentum) for a second
+  // or so after the fingers lift; a mouse wheel sends one large event for each notch, with nothing in
+  // between. So a flick is told from the one before it by any of: a pause in the events (which also
+  // makes every notch of a wheel a flick of its own), the direction reversing (at once, with only a
+  // short cooldown, so changing your mind is quick), or a push that is clearly stronger than the
+  // momentum it lands on. The numbers are here to be tuned.
+  const WHEEL = {
+    pause: 100,    // ms without events: a new flick
+    push: 40,      // px of scrolling that make a move
+    surge: 25,     // a new push over momentum: at least this many px in one event, and over twice the last one
+    again: 250,    // ms before a surge in the same direction may move again
+    reversing: 60, // ms before the opposite direction may move
+  };
+  const wheel = { last: -Infinity, lastDelta: 0, dir: 0, pushed: 0, spent: false, moved: -Infinity };
   document.addEventListener('wheel', (e) => {
     if (!presenting || e.ctrlKey || e.metaKey) return; // ctrl and wheel is the browser's zoom
     e.preventDefault();
-    if (e.timeStamp - lastWheel > 150) {
-      spent = false;
-      pushed = 0;
-    }
-    lastWheel = e.timeStamp;
-    if (spent) return;
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
-    pushed += (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;
-    if (Math.abs(pushed) < 40) return;
-    spent = true;
-    if (pushed > 0) next();
+    const d = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;
+    if (d === 0) return;
+    const sign = Math.sign(d);
+    const t = e.timeStamp;
+    const fresh = t - wheel.last > WHEEL.pause;
+    const reversed = !fresh && sign !== wheel.dir;
+    const surged = !fresh && !reversed && wheel.spent && Math.abs(d) >= WHEEL.surge && Math.abs(d) > 2 * Math.abs(wheel.lastDelta);
+    if (fresh || reversed || surged) {
+      wheel.spent = false;
+      wheel.pushed = 0;
+    }
+    wheel.last = t;
+    wheel.lastDelta = d;
+    wheel.dir = sign;
+    if (wheel.spent) return;
+    wheel.pushed += d;
+    if (Math.abs(wheel.pushed) < WHEEL.push) return;
+    const wait = reversed ? WHEEL.reversing : surged ? WHEEL.again : 0;
+    if (t - wheel.moved < wait) return;
+    wheel.spent = true;
+    wheel.moved = t;
+    if (wheel.pushed > 0) next();
     else prev();
   }, { passive: false });
 

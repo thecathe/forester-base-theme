@@ -13,6 +13,7 @@
     data-deck="slide"     any other direct child of a deck or section
     data-slug="..."       on a deck or section: its title as a link name (see deck-slugify)
     data-title="..."      on all of them: the plain-text title (no markup, no numbering)
+    data-layout="..."     on a unit with \meta{layout}{...}: how a slide is laid out (see deck.css)
 
   A tree is marked only when every tree above it is a deck as well, so a deck nested inside
   a slide is ordinary content, and nothing in the backmatter (the context, backlinks and so
@@ -65,6 +66,9 @@
         </xsl:choose>
       </xsl:attribute>
       <xsl:attribute name="data-title"><xsl:value-of select="f:frontmatter/f:title/@text" /></xsl:attribute>
+      <xsl:if test="normalize-space(f:frontmatter/f:meta[@name='layout']) != ''">
+        <xsl:attribute name="data-layout"><xsl:value-of select="normalize-space(f:frontmatter/f:meta[@name='layout'])" /></xsl:attribute>
+      </xsl:if>
 
       <xsl:if test="$is-deck">
         <xsl:variable name="page" select="ancestor-or-self::f:tree[last()]" />
