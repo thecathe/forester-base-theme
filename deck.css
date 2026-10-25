@@ -35,6 +35,36 @@
   display: none;
 }
 
+.deck-icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  vertical-align: -.125em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The small button beside Resume that shows where on the page you stopped. */
+.deck-present.deck-icon-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 .4em;
+  line-height: 1.4;
+}
+
+.deck-resume .deck-present + .deck-present {
+  margin-left: .3em;
+}
+
+.deck-flash {
+  outline: 3px solid #5b9cf0;
+  outline-offset: 2px;
+  background: rgba(91, 156, 240, .12);
+}
+
 /* A link to a slide that does not exist (a problem with the address, shown in either mode). */
 .deck-error {
   position: fixed;
@@ -332,16 +362,64 @@ body.presenting.deck-fullscreen .deck-bar .deck-stop {
 }
 
 .deck-where {
+  display: inline-flex;
+  align-items: center;
+  gap: .45em;
   max-width: 18em;
+}
+
+.deck-where-text {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.deck-where-icon {
+  display: inline-flex;
+}
+
+.deck-label {
+  display: none;
 }
 
 .deck-warn {
   color: #ffb4ab;
   font-weight: 700;
   cursor: help;
+}
+
+/* In a window the related controls are set together, each group in a pill of its own, and the list
+   and its toggle are joined into one control. Full screen keeps the plain strip. */
+body.presenting:not(.deck-fullscreen) .deck-bar {
+  column-gap: 1.2em;
+}
+
+body.presenting:not(.deck-fullscreen) .deck-group {
+  padding: .2em .45em;
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .28);
+  border-radius: 8px;
+}
+
+body.presenting:not(.deck-fullscreen) .deck-jump {
+  align-items: stretch;
+  gap: 0;
+}
+
+body.presenting:not(.deck-fullscreen) .deck-label {
+  display: inline-flex;
+  align-items: center;
+  margin-right: .5em;
+  opacity: .85;
+}
+
+body.presenting:not(.deck-fullscreen) .deck-goto {
+  border-radius: 4px 0 0 4px;
+}
+
+body.presenting:not(.deck-fullscreen) .deck-modes button:first-child {
+  border-radius: 0;
+  border-left-width: 1px;
 }
 
 /* ---- print: one slide a page ---- */

@@ -16,6 +16,8 @@
 // (trees/meta/fragments.tree) write elements that are numbered automatically. "Next" takes the next
 // step of the slide on show and, when there are none left, the next slide.
 //
+// Scrolling the wheel or trackpad does the same as the arrow keys, once for each flick.
+//
 // While presenting, a toolbar sits above the slide (below it, faint, over the slide's edge, when the
 // window is full screen); the page itself comes back when presenting stops.
 
@@ -128,6 +130,20 @@ function init() {
     if (text !== undefined) e.textContent = text;
     return e;
   };
+  // Small line icons, drawn to follow the text colour.
+  const ICONS = {
+    copy: '<rect x="6" y="6" width="7.5" height="7.5" rx="1.5"/><path d="M3.5 10V4A1.5 1.5 0 0 1 5 2.5h5.5"/>',
+    check: '<path d="M3 8.5l3.2 3.2L13 4.8"/>',
+    hook: '<path d="M2.5 4h6a3.5 3.5 0 0 1 3.5 3.5V13"/><path d="M9.8 10.5L12 13l2.2-2.5"/>',
+  };
+  const icon = (name) => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('class', 'deck-icon');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = ICONS[name];
+    return svg;
+  };
   const button = (className, text, title, onclick) => {
     const b = el('button', className, text);
     b.type = 'button';
@@ -141,13 +157,18 @@ function init() {
   const nextButton = button('deck-next', '›', 'Next (→, space)', () => next());
   const count = el('span', 'deck-count');
   const trail = el('span', 'deck-trail');
+  const gotoLabel = el('span', 'deck-label', 'Go to');
   const gotoSelect = el('select', 'deck-goto');
   gotoSelect.setAttribute('aria-label', 'Go to');
   const modeSections = button('deck-mode', 'Sections', 'List the sections', () => setGotoMode('sections'));
   const modeSlides = button('deck-mode', 'Slides', 'List every slide', () => setGotoMode('slides'));
   const modes = el('span', 'deck-modes');
   modes.append(modeSections, modeSlides);
+  const whereText = el('span', 'deck-where-text');
+  const whereIcon = el('span', 'deck-where-icon');
+  whereIcon.append(icon('copy'));
   const where = button('deck-where', '', '', () => copyLink());
+  where.append(whereText, whereIcon);
   const warn = el('span', 'deck-warn', '⚠ cut off');
   warn.hidden = true;
   const fullButton = button('deck-full', '⛶', 'Full screen (f)', () => toggleFullscreen());
@@ -157,8 +178,8 @@ function init() {
   bar.setAttribute('aria-label', 'Presentation controls');
   const nav = el('span', 'deck-group');
   nav.append(prevButton, count, nextButton);
-  const jump = el('span', 'deck-group');
-  jump.append(gotoSelect, modes);
+  const jump = el('span', 'deck-group deck-jump');
+  jump.append(gotoLabel, gotoSelect, modes);
   const tools = el('span', 'deck-group deck-tools');
   tools.append(warn, where, fullButton);
   bar.append(stopButton, nav, trail, jump, tools);
@@ -177,7 +198,6 @@ function init() {
   let current = -1;
   let step = 0;
   let presenting = false;
-  let goFullscreenOnKey = false;
   let resume = null;
   let gotoMode = 'sections';
   let whereLabel = '';
@@ -244,7 +264,7 @@ function init() {
     nextButton.disabled = current === last && step === steps;
     const links = linksTo(current);
     whereLabel = links[0];
-    where.textContent = whereLabel;
+    whereText.textContent = whereLabel;
     where.title = `Copy a link to this slide. Links that reach it: ${links.map((l) => '#' + l).join('   ')}`;
     syncGoto();
   }
@@ -257,8 +277,12 @@ function init() {
       window.prompt('A link to this slide:', url);
       return;
     }
-    where.textContent = 'copied ✓';
-    setTimeout(() => { where.textContent = whereLabel; }, 1200);
+    whereText.textContent = 'copied';
+    whereIcon.replaceChildren(icon('check'));
+    setTimeout(() => {
+      whereText.textContent = whereLabel;
+      whereIcon.replaceChildren(icon('copy'));
+    }, 1200);
   }
 
   function checkOverflow() {
@@ -320,17 +344,15 @@ function init() {
   function exit() {
     if (!presenting) return;
     presenting = false;
-    goFullscreenOnKey = false;
     // Where to pick up again, unless that is just the start.
     resume = current > 0 || step > 0 ? { index: current, step } : null;
     updateResume();
     document.body.classList.remove('presenting');
-    const slide = slides[current];
     clearShown();
     document.body.style.removeProperty('--bar-h');
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     history.replaceState(null, '', location.pathname + location.search);
-    slide.scrollIntoView({ block: 'start' });
+    window.scrollTo(0, 0);
   }
 
   function next() {
@@ -373,10 +395,19 @@ function init() {
     enter(resume.index, resume.step);
     enterFullscreen();
   });
+  const showButton = button('deck-present deck-icon-button', '', 'Show where on the page you stopped', () => {
+    if (!resume) return;
+    const slide = slides[resume.index];
+    slide.scrollIntoView({ block: 'start' });
+    slide.classList.add('deck-flash');
+    setTimeout(() => slide.classList.remove('deck-flash'), 1500);
+  });
+  showButton.append(icon('hook'));
+  showButton.setAttribute('aria-label', 'Show where on the page you stopped');
   const resumeNote = el('span', 'deck-resume-note');
   const resumeItem = el('li', 'meta-item deck-resume');
   resumeItem.hidden = true;
-  resumeItem.append(resumeButton, resumeNote);
+  resumeItem.append(resumeButton, showButton, resumeNote);
   const presentItem = el('li', 'meta-item');
   presentItem.append(present);
 
@@ -414,14 +445,31 @@ function init() {
     else handled = false;
     if (!handled) return;
     e.preventDefault();
-    // Opened from a link, the stage fills the window; the first key may take the whole screen.
-    if (goFullscreenOnKey && e.key !== 'Escape') {
-      goFullscreenOnKey = false;
-      if (e.key !== 'f' && e.key !== 'F') enterFullscreen();
-    }
   });
 
-  function followAddress(onLoad) {
+  // Scrolling moves through the steps and slides, once for each flick of a wheel or trackpad however
+  // long its momentum lasts: a pause in the events is what starts a new one.
+  let lastWheel = 0;
+  let spent = false;
+  let pushed = 0;
+  document.addEventListener('wheel', (e) => {
+    if (!presenting || e.ctrlKey || e.metaKey) return; // ctrl and wheel is the browser's zoom
+    e.preventDefault();
+    if (e.timeStamp - lastWheel > 150) {
+      spent = false;
+      pushed = 0;
+    }
+    lastWheel = e.timeStamp;
+    if (spent) return;
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+    pushed += (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;
+    if (Math.abs(pushed) < 40) return;
+    spent = true;
+    if (pushed > 0) next();
+    else prev();
+  }, { passive: false });
+
+  function followAddress() {
     const target = parseHash(location.hash);
     if (!target) {
       clearError();
@@ -431,12 +479,11 @@ function init() {
       showError(target.error);
       return;
     }
-    if (!presenting && onLoad) goFullscreenOnKey = true;
     // The address already names this slide, so it stays as it was written until a key moves on.
     enter(target.index, 0, false);
   }
-  window.addEventListener('hashchange', () => followAddress(false));
-  followAddress(true);
+  window.addEventListener('hashchange', followAddress);
+  followAddress();
 
   // Recheck what fits when the size changes and when the maths and fonts have arrived.
   window.addEventListener('resize', checkOverflow);
