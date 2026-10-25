@@ -4,8 +4,8 @@
 
    A deck page marks its structure itself, at build time: data-deck="deck|section|slide" on the
    <section> of each unit. deck.js adds `body.presenting` while presenting, and `.current` on the
-   slide being shown and `.in-chain` on the sections around it. Print needs no script: every
-   slide becomes a page. The slide look is written twice, once for presenting and once for print,
+   slide being shown and `.in-chain` on the sections around it, and `body.deck-fullscreen` while the
+   window is full screen. Print needs no script: every slide becomes a page. The slide look is written twice, once for presenting and once for print,
    because a media query cannot be shared with a class selector; keep the two in step. */
 
 /* ---- on the ordinary page ---- */
@@ -23,6 +23,16 @@
 
 .deck-present:hover {
   background: rgba(0, 100, 255, .08);
+}
+
+.deck-resume-note {
+  margin-left: .5em;
+  font-size: .85em;
+  color: #666;
+}
+
+.deck-resume[hidden] {
+  display: none;
 }
 
 /* A link to a slide that does not exist (a problem with the address, shown in either mode). */
@@ -43,7 +53,11 @@
   display: none;
 }
 
-.deck-hud {
+body.presenting .deck-error {
+  top: var(--bar-h, 0px);
+}
+
+.deck-bar {
   display: none;
 }
 
@@ -93,9 +107,12 @@ body.presenting section[data-deck].in-chain > details > :not(section[data-deck])
 
 /* The stage: 16:9, as large as fits, centred; the text scales with it. */
 body.presenting section[data-deck="slide"].current {
-  --stage-w: min(100vw, 177.7778vh);
+  --stage-w: min(100vw, calc((100vh - var(--bar-h, 0px)) * 16 / 9));
   position: fixed;
-  inset: 0;
+  top: var(--bar-h, 0px);
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 10;
   box-sizing: border-box;
   width: var(--stage-w);
@@ -149,33 +166,47 @@ body.presenting .deck-hidden {
   visibility: hidden;
 }
 
-/* The bar along the bottom: quiet until the pointer or focus is on it. */
-body.presenting .deck-hud {
+/* The toolbar. Windowed, it is a band across the top that the slide sits under; full screen has no
+   room to spare, so it becomes a faint strip over the slide's lower edge, bright when pointed at. */
+body.presenting .deck-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 1em;
+  gap: .35em 1em;
   position: fixed;
+  top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
   z-index: 30;
-  padding: .3em .8em;
-  font: 13px/1.2 system-ui, sans-serif;
+  box-sizing: border-box;
+  padding: .45rem .8rem;
+  font: 14px/1.25 system-ui, sans-serif;
+  color: #fff;
+  background: #1d3f72;
+  border-bottom: 3px solid #5b9cf0;
+}
+
+body.presenting.deck-fullscreen .deck-bar {
+  top: auto;
+  bottom: 0;
+  padding: .3rem .8rem;
+  font-size: 13px;
   color: #8a8a8a;
   background: transparent;
+  border-bottom: 0;
   opacity: .7;
   transition: opacity .15s, background-color .15s, color .15s;
 }
 
-body.presenting .deck-hud:hover,
-body.presenting .deck-hud:focus-within {
+body.presenting.deck-fullscreen .deck-bar:hover,
+body.presenting.deck-fullscreen .deck-bar:focus-within {
   color: #eee;
-  background: rgba(0, 0, 0, .75);
+  background: rgba(0, 0, 0, .8);
   opacity: 1;
 }
 
-.deck-hud button {
+.deck-bar button,
+.deck-bar select {
   font: inherit;
   color: inherit;
   background: transparent;
@@ -185,36 +216,103 @@ body.presenting .deck-hud:focus-within {
   cursor: pointer;
 }
 
-.deck-hud button:hover {
+.deck-bar button:hover {
   background: rgba(255, 255, 255, .2);
 }
 
-.deck-hud button:disabled {
+.deck-bar button:disabled {
   opacity: .4;
   cursor: default;
 }
 
-.deck-where {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  opacity: .85;
-  cursor: help;
+.deck-bar select {
+  max-width: 22em;
+  color: #000;
+  background: #fff;
+  border-color: #fff;
 }
 
-.deck-controls {
-  display: flex;
+body.presenting.deck-fullscreen .deck-bar select {
+  color: #222;
+  background: #ddd;
+  border-color: #ddd;
+}
+
+.deck-bar option:disabled {
+  color: #666;
+  font-weight: 700;
+}
+
+.deck-bar .deck-stop {
+  font-weight: 700;
+  color: #fff;
+  background: #b3261e;
+  border-color: #ffb4ab;
+}
+
+.deck-bar .deck-stop:hover {
+  background: #d3382e;
+}
+
+body.presenting.deck-fullscreen .deck-bar .deck-stop {
+  color: inherit;
+  background: transparent;
+  border-color: currentColor;
+}
+
+.deck-group,
+.deck-modes {
+  display: inline-flex;
   align-items: center;
   gap: .4em;
 }
 
+.deck-modes {
+  gap: 0;
+}
+
+.deck-modes button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.deck-modes button:last-child {
+  border-radius: 0 4px 4px 0;
+  border-left-width: 0;
+}
+
+.deck-modes button[aria-pressed="true"] {
+  background: rgba(255, 255, 255, .3);
+  font-weight: 700;
+}
+
+.deck-tools {
+  margin-left: auto;
+}
+
 .deck-count {
-  min-width: 6em;
+  min-width: 5.5em;
   text-align: center;
+  font-weight: 700;
+}
+
+.deck-trail {
+  flex: 1 1 8em;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: .9;
+}
+
+.deck-where {
+  max-width: 18em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .deck-warn {
-  color: #ff8a80;
+  color: #ffb4ab;
   font-weight: 700;
   cursor: help;
 }
@@ -239,7 +337,7 @@ body.presenting .deck-hud:focus-within {
   #toc,
   ninja-keys,
   article > footer,
-  .deck-hud,
+  .deck-bar,
   .deck-error {
     display: none !important;
   }

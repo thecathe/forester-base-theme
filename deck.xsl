@@ -12,6 +12,7 @@
     data-deck="section"   a nested deck
     data-deck="slide"     any other direct child of a deck or section
     data-slug="..."       on a deck or section: its title as a link name (see deck-slugify)
+    data-title="..."      on all of them: the plain-text title (no markup, no numbering)
 
   A tree is marked only when every tree above it is a deck as well, so a deck nested inside
   a slide is ordinary content, and nothing in the backmatter (the context, backlinks and so
@@ -63,6 +64,7 @@
           <xsl:otherwise>slide</xsl:otherwise>
         </xsl:choose>
       </xsl:attribute>
+      <xsl:attribute name="data-title"><xsl:value-of select="f:frontmatter/f:title/@text" /></xsl:attribute>
 
       <xsl:if test="$is-deck">
         <xsl:variable name="page" select="ancestor-or-self::f:tree[last()]" />

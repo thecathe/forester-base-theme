@@ -4,8 +4,8 @@
 // its own and not part of the bundled forester.js, so it needs no build step.
 //
 // It works out nothing about the deck's shape. deck.xsl wrote that into the page when it was built
-// (data-deck="deck|section|slide" on each unit, data-slug on the deck and its sections) and this
-// reads it. What it adds is the state: which slide is on show and how far through its steps.
+// (data-deck="deck|section|slide" on each unit, data-slug and data-title) and this reads it. What it
+// adds is the state: which slide is on show and how far through its steps.
 //
 // Links, from the page's address: #slide-3 (the third slide of the whole deck), #name (the first
 // slide of the section called name) and #name/2 (the second slide of that section). A link that
@@ -14,6 +14,9 @@
 // Steps: an element with data-step-from="a" (and, if it goes away again, data-step-until="b") is
 // shown from step a up to, but not including, step b. "Next" takes the next step of the slide on
 // show and, when there are none left, the next slide.
+//
+// While presenting, a toolbar sits above the slide (below it, faint, over the slide's edge, when the
+// window is full screen); the page itself comes back when presenting stops.
 
 const KEYS_NEXT = new Set(['ArrowRight', 'ArrowDown', 'PageDown', 'Enter']);
 const KEYS_PREV = new Set(['ArrowLeft', 'ArrowUp', 'PageUp']);
@@ -25,22 +28,51 @@ function init() {
   if (slides.length === 0) return;
   const last = slides.length - 1;
 
+  // ---- the deck's shape, read from the marks ----
+
   // The deck and its sections that contain each slide, outermost first, and the slides each
   // section contains (as indexes), in order. The deck itself counts as the outermost section.
+  const enclosing = (e) => e.parentElement.closest('section[data-deck]');
   const sectionsOf = slides.map((slide) => {
     const chain = [];
-    for (let e = slide.parentElement.closest('section[data-deck]'); e; e = e.parentElement.closest('section[data-deck]')) {
-      chain.unshift(e);
-    }
+    for (let e = enclosing(slide); e; e = enclosing(e)) chain.unshift(e);
     return chain;
   });
-  const members = new Map();
-  [root, ...root.querySelectorAll('section[data-deck="section"]')].forEach((s) => members.set(s, []));
+  const sectionList = [root, ...root.querySelectorAll('section[data-deck="section"]')];
+  const members = new Map(sectionList.map((s) => [s, []]));
   sectionsOf.forEach((chain, i) => chain.forEach((s) => members.get(s).push(i)));
   const bySlug = new Map();
-  for (const s of members.keys()) {
+  for (const s of sectionList) {
     if (s.dataset.slug && !bySlug.has(s.dataset.slug)) bySlug.set(s.dataset.slug, s);
   }
+  const depthOf = (s) => {
+    let d = 0;
+    for (let e = enclosing(s); e; e = enclosing(e)) d++;
+    return d;
+  };
+
+  const titleOf = (e) => e.dataset.title || '(untitled)';
+  const innermost = (i) => sectionsOf[i][sectionsOf[i].length - 1];
+  const relative = (s, i) => members.get(s).indexOf(i) + 1;
+  // "Coffee machine › Inner section", without the deck's own title unless it is all there is.
+  const trailOf = (i) => {
+    const chain = sectionsOf[i];
+    return (chain.length > 1 ? chain.slice(1) : chain).map(titleOf).join(' › ');
+  };
+  // The ways of addressing a slide, the steadiest first.
+  const linksTo = (i) => {
+    const links = [];
+    for (const s of [...sectionsOf[i]].reverse()) {
+      if (s.dataset.slug) links.push(`${s.dataset.slug}/${relative(s, i)}`);
+    }
+    links.push(`slide-${i + 1}`);
+    return links;
+  };
+  const describe = (i, step) => {
+    const s = innermost(i);
+    return `${trailOf(i)}, slide ${relative(s, i)} of ${members.get(s).length} (${i + 1} of ${slides.length} overall)` +
+      (step > 0 ? `, step ${step}` : '');
+  };
 
   // What an address means: {index} for a slide, {error} for a deck link that points nowhere, or
   // null when it is not a deck link at all (an ordinary anchor on the page).
@@ -98,26 +130,38 @@ function init() {
     return b;
   };
 
-  const where = el('span', 'deck-where');
-  const warn = el('span', 'deck-warn', '⚠ cut off');
-  warn.hidden = true;
-  const count = el('span', 'deck-count');
+  const stopButton = button('deck-stop', '■ Stop presenting', 'Stop presenting and go back to the page (Esc)', () => exit());
   const prevButton = button('deck-prev', '‹', 'Previous (←)', () => prev());
   const nextButton = button('deck-next', '›', 'Next (→, space)', () => next());
-  const controls = el('span', 'deck-controls');
-  controls.append(
-    warn, prevButton, count, nextButton,
-    button('deck-full', '⛶', 'Full screen (f)', () => toggleFullscreen()),
-    button('deck-exit', '✕', 'Stop presenting (Esc)', () => exit()),
-  );
-  const hud = el('div', 'deck-hud');
-  hud.setAttribute('role', 'toolbar');
-  hud.setAttribute('aria-label', 'Presentation controls');
-  hud.append(where, controls);
+  const count = el('span', 'deck-count');
+  const trail = el('span', 'deck-trail');
+  const gotoSelect = el('select', 'deck-goto');
+  gotoSelect.setAttribute('aria-label', 'Go to');
+  const modeSections = button('deck-mode', 'Sections', 'List the sections', () => setGotoMode('sections'));
+  const modeSlides = button('deck-mode', 'Slides', 'List every slide', () => setGotoMode('slides'));
+  const modes = el('span', 'deck-modes');
+  modes.append(modeSections, modeSlides);
+  const where = button('deck-where', '', '', () => copyLink());
+  const warn = el('span', 'deck-warn', '⚠ cut off');
+  warn.hidden = true;
+  const fullButton = button('deck-full', '⛶', 'Full screen (f)', () => toggleFullscreen());
+
+  const bar = el('div', 'deck-bar');
+  bar.setAttribute('role', 'toolbar');
+  bar.setAttribute('aria-label', 'Presentation controls');
+  const nav = el('span', 'deck-group');
+  nav.append(prevButton, count, nextButton);
+  const jump = el('span', 'deck-group');
+  jump.append(gotoSelect, modes);
+  const tools = el('span', 'deck-group deck-tools');
+  tools.append(warn, where, fullButton);
+  bar.append(stopButton, nav, trail, jump, tools);
+
   const errorBar = el('div', 'deck-error');
   errorBar.setAttribute('role', 'alert');
   errorBar.hidden = true;
-  document.body.append(hud, errorBar);
+  document.body.append(bar, errorBar);
+  document.body.tabIndex = -1;
 
   const showError = (message) => { errorBar.textContent = message; errorBar.hidden = false; };
   const clearError = () => { errorBar.hidden = true; };
@@ -128,6 +172,9 @@ function init() {
   let step = 0;
   let presenting = false;
   let goFullscreenOnKey = false;
+  let resume = null;
+  let gotoMode = 'sections';
+  let whereLabel = '';
 
   function applyStep() {
     for (const f of stepsOf(slides[current]).list) {
@@ -136,19 +183,76 @@ function init() {
     }
   }
 
-  function updateHud() {
-    const chain = sectionsOf[current];
-    const steps = stepsOf(slides[current]).count;
-    count.textContent = `${current + 1} / ${slides.length}` + (steps > 0 ? ` · ${step}/${steps}` : '');
-    const inner = chain[chain.length - 1];
-    const links = [`#slide-${current + 1}`];
-    for (const s of chain) {
-      if (s.dataset.slug) links.push(`#${s.dataset.slug}/${members.get(s).indexOf(current) + 1}`);
+  // The list of places to jump to: the sections, or every slide.
+  function fillGoto() {
+    gotoSelect.textContent = '';
+    const option = (value, text, disabled) => {
+      const o = el('option', '', text);
+      o.value = value;
+      o.disabled = disabled;
+      gotoSelect.append(o);
+    };
+    const indent = (n) => '  '.repeat(n);
+    if (gotoMode === 'sections') {
+      sectionList.forEach((s, k) => {
+        const n = members.get(s).length;
+        option(String(k), `${indent(depthOf(s))}${titleOf(s)} (${n})`, n === 0);
+      });
+    } else {
+      let shownIn = null;
+      slides.forEach((slide, i) => {
+        const s = innermost(i);
+        if (s !== shownIn) {
+          shownIn = s;
+          option('', `${indent(depthOf(s))}— ${titleOf(s)} —`, true);
+        }
+        option(String(i), `${indent(depthOf(s) + 1)}${i + 1}. ${titleOf(slide)}`, false);
+      });
     }
-    where.textContent = inner.dataset.slug ? links[links.length - 1].slice(1) : `slide ${current + 1}`;
-    where.title = `Links to this slide: ${links.join('   ')}`;
+    modeSections.setAttribute('aria-pressed', String(gotoMode === 'sections'));
+    modeSlides.setAttribute('aria-pressed', String(gotoMode === 'slides'));
+    syncGoto();
+  }
+  function syncGoto() {
+    if (current < 0) return;
+    gotoSelect.value = gotoMode === 'sections' ? String(sectionList.indexOf(innermost(current))) : String(current);
+  }
+  function setGotoMode(mode) {
+    gotoMode = mode;
+    fillGoto();
+  }
+  gotoSelect.addEventListener('change', () => {
+    const v = Number(gotoSelect.value);
+    const index = gotoMode === 'sections' ? members.get(sectionList[v])[0] : v;
+    gotoSelect.blur();
+    if (index !== undefined) show(index);
+  });
+
+  function updateBar() {
+    const s = innermost(current);
+    const steps = stepsOf(slides[current]).count;
+    count.textContent = `${current + 1} / ${slides.length}` + (steps > 0 ? ` · step ${step}/${steps}` : '');
+    trail.textContent = `${trailOf(current)} (${relative(s, current)} of ${members.get(s).length})`;
+    trail.title = describe(current, step);
     prevButton.disabled = current === 0 && step === 0;
     nextButton.disabled = current === last && step === steps;
+    const links = linksTo(current);
+    whereLabel = links[0];
+    where.textContent = whereLabel;
+    where.title = `Copy a link to this slide. Links that reach it: ${links.map((l) => '#' + l).join('   ')}`;
+    syncGoto();
+  }
+
+  async function copyLink() {
+    const url = `${location.href.split('#')[0]}#${whereLabel}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt('A link to this slide:', url);
+      return;
+    }
+    where.textContent = 'copied ✓';
+    setTimeout(() => { where.textContent = whereLabel; }, 1200);
   }
 
   function checkOverflow() {
@@ -156,8 +260,17 @@ function init() {
     const s = slides[current];
     const over = s.scrollHeight > s.clientHeight + 2 || s.scrollWidth > s.clientWidth + 2;
     warn.hidden = !over;
-    if (over) warn.title = "This slide has more on it than fits, so part of it is cut off.";
+    if (over) warn.title = 'This slide has more on it than fits, so part of it is cut off.';
   }
+
+  // The slide takes whatever the toolbar leaves; full screen has no room to spare, so the toolbar
+  // floats over the slide's lower edge there instead.
+  function layoutBar() {
+    const room = presenting && !document.fullscreenElement ? bar.offsetHeight : 0;
+    document.body.style.setProperty('--bar-h', `${room}px`);
+    checkOverflow();
+  }
+  new ResizeObserver(layoutBar).observe(bar);
 
   function clearShown() {
     if (current < 0) return;
@@ -180,7 +293,7 @@ function init() {
     if (d) d.open = true;
     slide.scrollTop = 0;
     applyStep();
-    updateHud();
+    updateBar();
     checkOverflow();
     if (writeAddress) history.replaceState(null, '', `#slide-${index + 1}`);
   }
@@ -188,9 +301,13 @@ function init() {
   function enter(index, newStep = 0, writeAddress = true) {
     if (!presenting) {
       presenting = true;
+      resume = null;
+      updateResume();
       document.body.classList.add('presenting');
+      document.body.classList.toggle('deck-fullscreen', !!document.fullscreenElement);
     }
     clearError();
+    layoutBar();
     show(index, newStep, writeAddress);
   }
 
@@ -198,9 +315,13 @@ function init() {
     if (!presenting) return;
     presenting = false;
     goFullscreenOnKey = false;
+    // Where to pick up again, unless that is just the start.
+    resume = current > 0 || step > 0 ? { index: current, step } : null;
+    updateResume();
     document.body.classList.remove('presenting');
     const slide = slides[current];
     clearShown();
+    document.body.style.removeProperty('--bar-h');
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     history.replaceState(null, '', location.pathname + location.search);
     slide.scrollIntoView({ block: 'start' });
@@ -217,25 +338,54 @@ function init() {
     else if (current > 0) show(current - 1, stepsOf(slides[current - 1]).count);
   }
 
-  function toggleFullscreen() {
+  const enterFullscreen = () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+  };
+  const toggleFullscreen = () => {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    else document.documentElement.requestFullscreen?.().catch(() => {});
+    else enterFullscreen();
+  };
+  document.addEventListener('fullscreenchange', () => {
+    const full = !!document.fullscreenElement;
+    document.body.classList.toggle('deck-fullscreen', full);
+    // Leaving full screen can leave the keyboard outside the page, which would swallow the next Esc.
+    if (!full && presenting) {
+      window.focus();
+      document.body.focus({ preventScroll: true });
+    }
+    layoutBar();
+  });
+
+  // ---- the Present and Resume buttons, in the deck's metadata line ----
+
+  const present = button('deck-present', '▶ Present', `Present this deck from the start (${slides.length} slides). Links such as #slide-3 open it on that slide.`, () => {
+    enter(0);
+    enterFullscreen();
+  });
+  const resumeButton = button('deck-present', '↩ Resume', 'Carry on from where you stopped', () => {
+    if (!resume) return;
+    enter(resume.index, resume.step);
+    enterFullscreen();
+  });
+  const resumeNote = el('span', 'deck-resume-note');
+  const resumeItem = el('li', 'meta-item deck-resume');
+  resumeItem.hidden = true;
+  resumeItem.append(resumeButton, resumeNote);
+  const presentItem = el('li', 'meta-item');
+  presentItem.append(present);
+
+  function updateResume() {
+    resumeItem.hidden = !resume;
+    if (resume) resumeNote.textContent = describe(resume.index, resume.step);
   }
 
-  // ---- the Present button, in the deck's metadata line ----
-
-  const present = button('deck-present', '▶ Present', `Present this deck (${slides.length} slides). Links such as #slide-3 open it on that slide.`, () => {
-    enter(current >= 0 ? current : 0);
-    toggleFullscreen();
-  });
   const metadata = root.querySelector(':scope > details > summary > header .metadata ul');
   if (metadata) {
-    const li = el('li', 'meta-item');
-    li.append(present);
-    metadata.append(li);
+    metadata.append(presentItem, resumeItem);
   } else {
-    root.querySelector(':scope > details > summary > header')?.append(present);
+    root.querySelector(':scope > details > summary > header')?.append(present, resumeItem);
   }
+  fillGoto();
 
   // ---- keys, addresses, resizing ----
 
@@ -261,7 +411,7 @@ function init() {
     // Opened from a link, the stage fills the window; the first key may take the whole screen.
     if (goFullscreenOnKey && e.key !== 'Escape') {
       goFullscreenOnKey = false;
-      if (!document.fullscreenElement && e.key !== 'f' && e.key !== 'F') toggleFullscreen();
+      if (e.key !== 'f' && e.key !== 'F') enterFullscreen();
     }
   });
 
