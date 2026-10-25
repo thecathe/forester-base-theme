@@ -20,6 +20,7 @@
           </xsl:if>
         </script>
         <script type="module" src="{/f:tree/@base-url}forester.js"></script>
+        <xsl:call-template name="deck-head" />
         <title>
           <xsl:value-of select="/f:tree/f:frontmatter/f:title/@text" />
         </title>
@@ -388,6 +389,8 @@
           <xsl:value-of select="f:frontmatter/f:taxon" />
         </xsl:attribute>
       </xsl:if>
+
+      <xsl:call-template name="deck-attributes" />
 
       <xsl:choose>
         <xsl:when test="not(@show-heading='false')">
