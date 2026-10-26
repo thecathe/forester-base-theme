@@ -562,11 +562,16 @@ function init() {
 
   function overviewKey(e) {
     let to = selected;
-    switch (e.key) {
-      case 'ArrowRight': to++; break;
-      case 'ArrowLeft': to--; break;
-      case 'ArrowDown': to += overviewColumns(); break;
-      case 'ArrowUp': to -= overviewColumns(); break;
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    switch (key) {
+      case 'ArrowRight':
+      case 'l': to++; break;
+      case 'ArrowLeft':
+      case 'h': to--; break;
+      case 'ArrowDown':
+      case 'j': to += overviewColumns(); break;
+      case 'ArrowUp':
+      case 'k': to -= overviewColumns(); break;
       case 'Home': to = 0; break;
       case 'End': to = last; break;
       case 'Enter':
@@ -576,12 +581,10 @@ function init() {
         return;
       case 'Escape':
       case 'o':
-      case 'O':
         e.preventDefault();
         leaveOverview(true);
         return;
       case 'f':
-      case 'F':
         toggleFullscreen();
         break;
       default: return;
@@ -719,6 +722,14 @@ function init() {
     else if (e.key === 'Escape') exit();
     else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
     else if (e.key === 'o' || e.key === 'O') openOverview();
+    // The same moves on the home row: h and l are the slide before and after (from its first step),
+    // j and k the next and previous step of this slide and no further, u and i the sections.
+    else if (e.key === 'l' || e.key === 'L') { if (current < last) show(current + 1); }
+    else if (e.key === 'h' || e.key === 'H') { if (current > 0) show(current - 1); }
+    else if (e.key === 'j' || e.key === 'J') { if (step < stepsOf(slides[current]).count) show(current, step + 1); }
+    else if (e.key === 'k' || e.key === 'K') { if (step > 0) show(current, step - 1); }
+    else if (e.key === 'i' || e.key === 'I') nextSection();
+    else if (e.key === 'u' || e.key === 'U') prevSection();
     else handled = false;
     if (!handled) return;
     e.preventDefault();
