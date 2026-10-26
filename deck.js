@@ -188,16 +188,38 @@ function init() {
   // The steps of a slide, worked out once. A fragment (see trees/meta/fragments.tree) is anything
   // with data-step-from, a .fragment, or an item of a list inside an .incremental. The ones that
   // do not say which step they arrive on are numbered in the order they are written, after
-  // whichever step came before, except that the picture of a \steps step goes away when the next
-  // step's text arrives, so the right-hand column only ever shows one.
+  // whichever step came before, with two exceptions:
+  //  - a fragment that is the first thing inside another fragment arrives with it, so that an item of
+  //    a list never shows up empty before the step it holds (see hasContentBefore);
+  //  - the picture of a \steps step goes away when the next step's text arrives, so the right-hand
+  //    column only ever shows one.
   const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li';
   const stepCache = new WeakMap();
+
+  // Whether anything is shown inside `outer` before `inner`: text, or a picture or a control. (What is
+  // before may well be a fragment too, still waiting: the question is whether `outer` is empty
+  // without `inner`, which it is not if an earlier fragment is part of it.)
+  function hasContentBefore(outer, inner) {
+    const range = document.createRange();
+    range.setStart(outer, 0);
+    range.setEndBefore(inner);
+    return range.toString().trim() !== '' || range.cloneContents().querySelector('img, svg, canvas, video, iframe, object, input') !== null;
+  }
+
   function stepsOf(slide) {
     let s = stepCache.get(slide);
     if (!s) {
       let counter = 0;
+      const arrives = new Map();
       const list = [...slide.querySelectorAll(FRAGMENTS)].map((el) => {
-        const from = el.dataset.stepFrom === undefined ? counter + 1 : Number(el.dataset.stepFrom) || 0;
+        let from;
+        if (el.dataset.stepFrom !== undefined) {
+          from = Number(el.dataset.stepFrom) || 0;
+        } else {
+          const outer = el.parentElement.closest(FRAGMENTS);
+          from = outer && arrives.has(outer) && !hasContentBefore(outer, el) ? arrives.get(outer) : counter + 1;
+        }
+        arrives.set(el, from);
         counter = Math.max(counter, from);
         return { el, from, until: el.dataset.stepUntil === undefined ? null : Number(el.dataset.stepUntil) };
       });
