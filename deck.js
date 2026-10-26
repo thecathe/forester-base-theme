@@ -75,6 +75,10 @@ function init() {
     links.push(`slide-${i + 1}`);
     return links;
   };
+  // Where each section begins, as slide indexes, with the start of the talk first: what the section keys
+  // move between. A section nested in another counts, as it does in the go-to list.
+  const sectionStarts = [...new Set([0, ...sectionList.slice(1).map((s) => members.get(s)[0]).filter((i) => i !== undefined)])]
+    .sort((a, b) => a - b);
   const describe = (i, step) => {
     const s = innermost(i);
     return `${trailOf(i)}, slide ${relative(s, i)} of ${members.get(s).length} (${i + 1} of ${slides.length} overall)` +
@@ -159,6 +163,8 @@ function init() {
   const stopButton = button('deck-stop', '■ Stop presenting', 'Stop presenting and go back to the page (Esc)', () => exit());
   const prevButton = button('deck-prev', '‹', 'Previous (←)', () => prev());
   const nextButton = button('deck-next', '›', 'Next (→, space)', () => next());
+  const prevSectionButton = button('deck-prev-section', '«', 'Start of the section, or of the one before ([)', () => prevSection());
+  const nextSectionButton = button('deck-next-section', '»', 'Start of the next section (])', () => nextSection());
   const count = el('span', 'deck-count');
   const trail = el('span', 'deck-trail');
   const gotoLabel = el('span', 'deck-label', 'Go to');
@@ -185,7 +191,7 @@ function init() {
   bar.setAttribute('role', 'toolbar');
   bar.setAttribute('aria-label', 'Presentation controls');
   const nav = el('span', 'deck-group');
-  nav.append(prevButton, count, nextButton);
+  nav.append(prevSectionButton, prevButton, count, nextButton, nextSectionButton);
   const jump = el('span', 'deck-group deck-jump');
   jump.append(gotoLabel, gotoSelect, modes);
   const tools = el('span', 'deck-group deck-tools');
@@ -276,6 +282,8 @@ function init() {
     trail.title = describe(current, step);
     prevButton.disabled = current === 0 && step === 0;
     nextButton.disabled = current === last && step === steps;
+    prevSectionButton.disabled = current === 0 && step === 0;
+    nextSectionButton.disabled = !sectionStarts.some((i) => i > current);
     const links = linksTo(current);
     whereLabel = links[0];
     whereName.textContent = whereLabel;
@@ -384,6 +392,18 @@ function init() {
     else if (current < last) show(current + 1, 0);
   }
 
+  // The start of the next section, and the start of this one (or, from its first slide, of the one
+  // before). Where a section begins is what the build marked; see sectionStarts.
+  function nextSection() {
+    const to = sectionStarts.find((i) => i > current);
+    if (to !== undefined) show(to);
+  }
+  function prevSection() {
+    const before = sectionStarts.filter((i) => i < current);
+    if (before.length > 0) show(before[before.length - 1]);
+    else if (current > 0 || step > 0) show(0);
+  }
+
   // Going back lands on the earlier slide with everything on it shown.
   function prev() {
     if (step > 0) show(current, step - 1);
@@ -462,7 +482,9 @@ function init() {
     } else if (KEYS_PREV.has(e.key) || (e.key === ' ' && e.shiftKey)) {
       if (e.key === ' ' && activates) return;
       prev();
-    } else if (e.key === 'Home') show(0);
+    } else if (e.key === '[') prevSection();
+    else if (e.key === ']') nextSection();
+    else if (e.key === 'Home') show(0);
     else if (e.key === 'End') show(last, stepsOf(slides[last]).count);
     else if (e.key === 'Escape') exit();
     else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
