@@ -206,6 +206,19 @@ function init() {
     return range.toString().trim() !== '' || range.cloneContents().querySelector('img, svg, canvas, video, iframe, object, input') !== null;
   }
 
+  // A fragment as it is at a press: shown or not and, for the text of a \step, whether it is the one we are
+  // on (deck-current: a chevron for its bullet) or one we have gone past (deck-past: dimmed). Used for the stage
+  // and for a printed page of a slide (showFrame).
+  function setFragment(f, el, press) {
+    const shown = press >= f.from && (f.until === null || press < f.until);
+    el.classList.toggle('deck-hidden', !shown);
+    if (f.passed !== undefined) {
+      const past = f.passed !== null && press >= f.passed;
+      el.classList.toggle('deck-past', past);
+      el.classList.toggle('deck-current', shown && !past);
+    }
+  }
+
   function stepsOf(slide) {
     let s = stepCache.get(slide);
     if (!s) {
@@ -224,11 +237,19 @@ function init() {
         return { el, from, until: el.dataset.stepUntil === undefined ? null : Number(el.dataset.stepUntil) };
       });
       const byEl = new Map(list.map((f) => [f.el, f]));
-      for (const f of list) {
-        if (!f.el.matches('.step-visual')) continue;
-        const row = f.el.parentElement.nextElementSibling;
+      // The press at which the row after a \step's row arrives: its picture goes then, and its text is passed.
+      const nextRow = (el) => {
+        const row = el.parentElement.nextElementSibling;
         const next = row && (row.matches('.fragment') ? row : row.querySelector('.fragment'));
-        if (next && byEl.has(next)) f.until = byEl.get(next).from;
+        return next && byEl.has(next) ? byEl.get(next).from : null;
+      };
+      for (const f of list) {
+        if (f.el.matches('.step-visual')) {
+          const at = nextRow(f.el);
+          if (at !== null) f.until = at;
+        } else if (f.el.matches('.step-text')) {
+          f.passed = nextRow(f.el);
+        }
       }
       s = { list, count: Math.max(0, ...list.map((f) => Math.max(f.from, f.until ?? 0))) };
       stepCache.set(slide, s);
@@ -384,10 +405,7 @@ function init() {
   let whereLabel = '';
 
   function applyStep() {
-    for (const f of stepsOf(slides[current]).list) {
-      const shown = step >= f.from && (f.until === null || step < f.until);
-      f.el.classList.toggle('deck-hidden', !shown);
-    }
+    for (const f of stepsOf(slides[current]).list) setFragment(f, f.el, step);
   }
 
   // The list of places to jump to: the sections, or every slide.
@@ -905,14 +923,13 @@ function init() {
   // Sets a slide (or a copy of one, whose steps are in the same order) to a page's state.
   function showFrame(el, frame, list) {
     const els = el.querySelectorAll(FRAGMENTS);
-    list.forEach((f, i) => {
-      els[i].classList.toggle('deck-hidden', !(frame.press >= f.from && (f.until === null || frame.press < f.until)));
-    });
+    list.forEach((f, i) => setFragment(f, els[i], frame.press));
     for (const d of el.querySelectorAll('details.reveal')) d.open = frame.open;
     for (const c of el.querySelectorAll('.flip-checkbox')) c.checked = frame.open;
     el.classList.add('deck-frame');
   }
 
+  const STEP_CLASSES = ['deck-hidden', 'deck-past', 'deck-current'];
   let afterPrint = [];
   window.addEventListener('beforeprint', () => {
     if (presenting) return; // the stage prints the slide on show, as it is
@@ -921,7 +938,7 @@ function init() {
       if (frames.length < 2) continue;
       const { list } = stepsOf(slide);
       const saved = {
-        hidden: list.map((f) => f.el.classList.contains('deck-hidden')),
+        classes: list.map((f) => STEP_CLASSES.map((c) => f.el.classList.contains(c))),
         open: [...slide.querySelectorAll('details.reveal')].map((d) => d.open),
         checked: [...slide.querySelectorAll('.flip-checkbox')].map((c) => c.checked),
       };
@@ -936,7 +953,7 @@ function init() {
       afterPrint.push(() => {
         for (const copy of copies) copy.remove();
         slide.classList.remove('deck-frame');
-        list.forEach((f, i) => f.el.classList.toggle('deck-hidden', saved.hidden[i]));
+        list.forEach((f, i) => STEP_CLASSES.forEach((c, j) => f.el.classList.toggle(c, saved.classes[i][j])));
         slide.querySelectorAll('details.reveal').forEach((d, i) => { d.open = saved.open[i]; });
         slide.querySelectorAll('.flip-checkbox').forEach((c, i) => { c.checked = saved.checked[i]; });
       });

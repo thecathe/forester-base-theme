@@ -361,6 +361,54 @@ body.presenting .deck-notice {
   display: contents;
 }
 
+/* The left entries of \pairs and \steps are bullets, a dot drawn so that it is the same everywhere. An entry
+   that is inside a list item has the item's bullet already, so it has none of its own. In a \steps, on the
+   stage and on a printed page (below), the entry we are on has a chevron instead, and the ones we have gone
+   past are dimmed, as \dim would. */
+.pair-text,
+.step-text {
+  position: relative;
+  padding-left: 1.2em;
+}
+
+.pair-text::before,
+.step-text::before {
+  content: '';
+  position: absolute;
+  left: .15em;
+  top: .5em;
+  top: calc(.5lh - .16em);
+  width: .32em;
+  height: .32em;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+li :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text) {
+  padding-left: 0;
+}
+
+li :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text)::before {
+  display: none;
+}
+
+:is(body.presenting:not(.overview), .deck-frame) .steps > .step > .step-text.deck-past {
+  opacity: .65;
+}
+
+:is(body.presenting:not(.overview), .deck-frame) .steps > .step > .step-text.deck-current::before {
+  left: .02em;
+  top: .45em;
+  top: calc(.5lh - .21em);
+  width: .42em;
+  height: .42em;
+  border: solid currentColor;
+  border-width: .14em .14em 0 0;
+  border-radius: 0;
+  background: none;
+  transform: rotate(45deg);
+}
+
 /* While presenting, and on each printed page of a slide that prints as several (deck.js, printFrames), the
    texts stack down the left, a row each, and a pair's picture sits beside its text. A step's picture is
    laid over the rows from its place down to the last, since it is only there until the next row arrives,
