@@ -610,6 +610,11 @@ function init() {
       if (section) list = outline(section, { withSlides: true, deep: false, skip: host });
     } else if (block.classList.contains('agenda-all')) {
       list = outline(root, { withSlides: true, deep: true });
+      // A whole talk is long: as many columns as it takes at about twelve entries to a column, and a
+      // smaller type for a very long one, so that it fits a slide.
+      const n = list.querySelectorAll('li').length;
+      block.style.setProperty('--agenda-cols', String(Math.min(5, Math.max(1, Math.ceil(n / 12)))));
+      block.style.setProperty('--agenda-size', n > 36 ? '.62em' : n > 24 ? '.72em' : '.86em');
     } else {
       list = outline(root, { withSlides: false, deep: true });
     }

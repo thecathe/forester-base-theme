@@ -107,8 +107,9 @@
 }
 
 .agenda-all > .agenda-list {
-  columns: 15em;
+  column-count: var(--agenda-cols, 2);
   column-gap: 2em;
+  font-size: var(--agenda-size, .8em);
 }
 
 .agenda-all > .agenda-list > li {
@@ -201,9 +202,7 @@
 }
 
 .deck-keys .keys-table {
-  columns: 2;
-  column-gap: 2.5em;
-  font-size: .62em;
+  font-size: .64em;
 }
 
 /* The ? overlay: over everything, away on Esc, a click, or 3 seconds after the next key. */
