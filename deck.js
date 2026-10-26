@@ -23,6 +23,10 @@
 // \agenda (trees/meta/navigation.tree) writes an empty block that is filled here, from the same marks,
 // with an outline of the deck; while presenting, what is behind you is dimmed and where you are is bold.
 //
+// The ? button (or the key) lays the key bindings over the slide: they go away on Esc, which that press
+// consumes, or 3 seconds after the next key, which does its usual work. KEY_TABLE below is the one list of
+// them; the overlay and a \keys block (trees/meta/navigation.tree) both draw from it.
+//
 // The overview (key o, or the grid button) shows every slide at once, small, with every step shown;
 // arrows move between them, enter or a click goes to one, escape or o comes back to where you were.
 // It reuses the stage's own look: every slide is given the class of the one on show, and the
@@ -32,6 +36,34 @@
 //
 // While presenting, a toolbar sits above the slide (below it, faint, over the slide's edge, when the
 // window is full screen); the page itself comes back when presenting stops.
+
+// The key bindings, as shown by the ? overlay and \keys: groups of [keys, what they do].
+const KEY_TABLE = [
+  ['Slides and steps', [
+    [['→', '↓', 'Space', 'Enter', 'PgDn'], 'Next step, or the next slide when there are none left'],
+    [['←', '↑', 'PgUp', 'Shift+Space'], 'Back a step, or to the slide before, shown complete'],
+    [['l'], 'Next slide, from its first step'],
+    [['h'], 'Previous slide, from its first step'],
+    [['j'], 'Next step of this slide, and no further'],
+    [['k'], 'Previous step of this slide'],
+    [['Home', 'End'], 'First slide; last slide, complete'],
+  ]],
+  ['Sections', [
+    [[']', 'i'], 'Start of the next section'],
+    [['[', 'u'], 'Start of this section, or of the one before'],
+  ]],
+  ['Views', [
+    [['o'], 'Overview of every slide (there, arrows or h j k l move, Enter goes to one)'],
+    [['f'], 'Full screen'],
+    [['?'], 'This list'],
+    [['Esc'], 'Closes this list or the overview; then leaves full screen; then stops presenting'],
+  ]],
+  ['Pointer', [
+    [['Wheel', 'Trackpad'], 'Back and forward, once for each flick'],
+    [['Click'], 'A segment of the progress bar goes there; in the overview a slide goes there'],
+  ]],
+];
+const HELP_MS = 3000;
 
 const KEYS_NEXT = new Set(['ArrowRight', 'ArrowDown', 'PageDown', 'Enter']);
 const KEYS_PREV = new Set(['ArrowLeft', 'ArrowUp', 'PageUp']);
@@ -175,6 +207,24 @@ function init() {
     if (text !== undefined) e.textContent = text;
     return e;
   };
+  // KEY_TABLE as elements: a group is a title and rows of keys and what they do.
+  function keysTable() {
+    const table = el('div', 'keys-table');
+    for (const [title, rows] of KEY_TABLE) {
+      const group = el('div', 'keys-group');
+      group.append(el('div', 'keys-title', title));
+      for (const [keys, what] of rows) {
+        const row = el('div', 'keys-row');
+        const cap = el('span', 'keys-caps');
+        keys.forEach((k) => cap.append(el('kbd', '', k)));
+        row.append(cap, el('span', 'keys-what', what));
+        group.append(row);
+      }
+      table.append(group);
+    }
+    return table;
+  }
+
   // Small line icons, drawn to follow the text colour.
   const ICONS = {
     copy: '<rect x="6" y="6" width="7.5" height="7.5" rx="1.5"/><path d="M3.5 10V4A1.5 1.5 0 0 1 5 2.5h5.5"/>',
@@ -224,6 +274,8 @@ function init() {
   const warn = el('span', 'deck-warn', '⚠ cut off');
   warn.hidden = true;
   const fullButton = button('deck-full', '⛶', 'Full screen (f)', () => toggleFullscreen());
+  const helpButton = button('deck-help-button', '?', 'Keyboard shortcuts (?)', () => (helpOpen() ? hideHelp() : showHelp()));
+  helpButton.setAttribute('aria-label', 'Keyboard shortcuts');
   const overviewButton = button('deck-overview', '', 'Overview of every slide (o)', () => (overview ? leaveOverview(true) : openOverview()));
   overviewButton.append(icon('grid'));
   overviewButton.setAttribute('aria-label', 'Overview of every slide');
@@ -236,7 +288,7 @@ function init() {
   const jump = el('span', 'deck-group deck-jump');
   jump.append(gotoLabel, gotoSelect, modes);
   const tools = el('span', 'deck-group deck-tools');
-  tools.append(warn, where, overviewButton, fullButton);
+  tools.append(warn, where, helpButton, overviewButton, fullButton);
   // The progress bar: a segment for each part of the talk, as wide as it has slides, filled as far as
   // you have got. Pointing at one names it; clicking goes to its first slide.
   const progress = el('div', 'deck-progress');
@@ -261,7 +313,20 @@ function init() {
   const noticeBar = el('div', 'deck-notice');
   noticeBar.setAttribute('role', 'status');
   noticeBar.hidden = true;
-  document.body.append(bar, errorBar, noticeBar);
+  const helpBox = el('div', 'deck-help');
+  helpBox.setAttribute('role', 'dialog');
+  helpBox.setAttribute('aria-label', 'Keyboard shortcuts');
+  helpBox.hidden = true;
+  const helpPanel = el('div', 'deck-help-panel');
+  helpPanel.append(
+    el('div', 'deck-help-title', 'Keyboard shortcuts'),
+    keysTable(),
+    el('div', 'deck-help-note', `Esc closes this; so does a click, or ${HELP_MS / 1000} seconds after the next key.`),
+  );
+  helpBox.append(helpPanel);
+  helpBox.addEventListener('click', () => hideHelp());
+  helpPanel.addEventListener('click', (e) => e.stopPropagation());
+  document.body.append(bar, errorBar, noticeBar, helpBox);
   document.body.tabIndex = -1;
 
   const showError = (message) => { errorBar.textContent = message; errorBar.hidden = false; };
@@ -440,6 +505,21 @@ function init() {
     show(index, newStep, writeAddress);
   }
 
+  // ---- the ? help ----
+
+  let helpTimer = 0;
+  const helpOpen = () => !helpBox.hidden;
+  function showHelp() {
+    clearTimeout(helpTimer);
+    helpTimer = 0;
+    helpBox.hidden = false;
+  }
+  function hideHelp() {
+    clearTimeout(helpTimer);
+    helpTimer = 0;
+    helpBox.hidden = true;
+  }
+
   // ---- the overview ----
 
   // Every slide takes the class of the one on show, and every section the class of those around it,
@@ -602,6 +682,7 @@ function init() {
   function exit() {
     if (!presenting) return;
     leaveOverview();
+    hideHelp();
     presenting = false;
     markAgendas();
     // Where to pick up again, unless that is just the start.
@@ -695,6 +776,7 @@ function init() {
     root.querySelector(':scope > details > summary > header')?.append(present, resumeItem);
   }
   for (const block of root.querySelectorAll('.agenda')) buildAgenda(block);
+  for (const block of root.querySelectorAll('.deck-keys')) block.replaceChildren(keysTable());
   fillGoto();
 
   // ---- keys, addresses, resizing ----
@@ -702,6 +784,24 @@ function init() {
   document.addEventListener('keydown', (e) => {
     if (!presenting || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.composedPath().some((n) => n instanceof Element && n.matches('input, textarea, select, [contenteditable], ninja-keys'))) return;
+    if (helpOpen()) {
+      // Esc closes the list and is not passed on, so it does not also stop presenting. Any other key
+      // does its usual work, and the first one that is not a bare modifier starts the countdown.
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        hideHelp();
+        return;
+      }
+      if (!helpTimer && e.key !== '?' && !['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) {
+        helpTimer = setTimeout(hideHelp, HELP_MS);
+      }
+    }
+    if (e.key === '?') {
+      e.preventDefault();
+      if (helpOpen()) hideHelp();
+      else showHelp();
+      return;
+    }
     if (overview) {
       overviewKey(e);
       return;
