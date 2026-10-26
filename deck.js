@@ -79,6 +79,20 @@ function init() {
   // move between. A section nested in another counts, as it does in the go-to list.
   const sectionStarts = [...new Set([0, ...sectionList.slice(1).map((s) => members.get(s)[0]).filter((i) => i !== undefined)])]
     .sort((a, b) => a - b);
+  // The segments of the progress bar: each section directly in the deck, and each run of slides that
+  // sit directly in it (a title slide, a loose slide between sections).
+  const segments = [];
+  for (const unit of root.querySelectorAll(':scope > details > section[data-deck]')) {
+    if (unit.dataset.deck === 'section') {
+      const inside = members.get(unit);
+      if (inside.length > 0) segments.push({ title: titleOf(unit), start: inside[0], count: inside.length });
+    } else {
+      const i = slides.indexOf(unit);
+      const run = segments[segments.length - 1];
+      if (run && run.loose && run.start + run.count === i) run.count++;
+      else segments.push({ title: titleOf(unit), start: i, count: 1, loose: true });
+    }
+  }
   const describe = (i, step) => {
     const s = innermost(i);
     return `${trailOf(i)}, slide ${relative(s, i)} of ${members.get(s).length} (${i + 1} of ${slides.length} overall)` +
@@ -196,7 +210,23 @@ function init() {
   jump.append(gotoLabel, gotoSelect, modes);
   const tools = el('span', 'deck-group deck-tools');
   tools.append(warn, where, fullButton);
-  bar.append(stopButton, nav, trail, jump, tools);
+  // The progress bar: a segment for each part of the talk, as wide as it has slides, filled as far as
+  // you have got. Pointing at one names it; clicking goes to its first slide.
+  const progress = el('div', 'deck-progress');
+  progress.setAttribute('aria-hidden', 'true');
+  const segmentBoxes = segments.map((seg) => {
+    const box = el('div', 'deck-seg');
+    box.style.flex = `${seg.count} 1 0`;
+    box.title = seg.loose && seg.count > 1
+      ? `${seg.title} and ${seg.count - 1} more (${seg.count} slides)`
+      : `${seg.title} (${seg.count} slide${seg.count === 1 ? '' : 's'})`;
+    const fill = el('div', 'deck-seg-fill');
+    box.append(fill);
+    box.addEventListener('click', () => show(seg.start));
+    progress.append(box);
+    return { box, fill, seg };
+  });
+  bar.append(stopButton, nav, trail, jump, tools, progress);
 
   const errorBar = el('div', 'deck-error');
   errorBar.setAttribute('role', 'alert');
@@ -282,6 +312,11 @@ function init() {
     trail.title = describe(current, step);
     prevButton.disabled = current === 0 && step === 0;
     nextButton.disabled = current === last && step === steps;
+    for (const { box, fill, seg } of segmentBoxes) {
+      const done = Math.min(1, Math.max(0, (current + 1 - seg.start) / seg.count));
+      fill.style.width = `${done * 100}%`;
+      box.classList.toggle('deck-seg-here', current >= seg.start && current < seg.start + seg.count);
+    }
     prevSectionButton.disabled = current === 0 && step === 0;
     nextSectionButton.disabled = !sectionStarts.some((i) => i > current);
     const links = linksTo(current);

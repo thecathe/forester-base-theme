@@ -452,6 +452,49 @@ body.presenting.deck-fullscreen .deck-bar .deck-stop {
   display: none;
 }
 
+/* The progress bar, the last row of the toolbar. */
+.deck-progress {
+  display: flex;
+  flex: 0 0 100%;
+  gap: 2px;
+  height: 6px;
+  margin-top: .15em;
+  transition: height .1s;
+}
+
+.deck-progress:hover {
+  height: 11px;
+}
+
+.deck-seg {
+  position: relative;
+  min-width: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, .22);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.deck-seg-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: #7fb4ff;
+}
+
+.deck-seg-here .deck-seg-fill {
+  background: #fff;
+}
+
+body.presenting.deck-fullscreen .deck-seg-fill {
+  background: #6b8fc4;
+}
+
+body.presenting.deck-fullscreen .deck-seg-here .deck-seg-fill {
+  background: #cfe3ff;
+}
+
 .deck-warn {
   color: #ffb4ab;
   font-weight: 700;
