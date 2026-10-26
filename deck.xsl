@@ -14,6 +14,8 @@
     data-slug="..."       on a deck or section: its title as a link name (see deck-slugify)
     data-title="..."      on all of them: the plain-text title (no markup, no numbering)
     data-layout="..."     on a unit with \meta{layout}{...}: how a slide is laid out (see deck.css)
+    data-footer="..."     on a unit with \meta{footer}{none} or {show}: whether its slide has the footer
+                          (see deck.js, buildFooters)
     data-deck-warn="..."  on a deck or section that holds content which is not a unit, so is never
                           presented: the reason, with a piece of what is lost (see deck-stray)
 
@@ -31,7 +33,8 @@
 -->
 <xsl:stylesheet version="1.0"
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-  xmlns:f="http://www.forester-notes.org">
+  xmlns:f="http://www.forester-notes.org"
+  xmlns:html="http://www.w3.org/1999/xhtml">
 
   <xsl:variable name="deck-upper" select="'ABCDEFGHIJKLMNOPQRSTUVWXYZ'" />
   <xsl:variable name="deck-lower" select="'abcdefghijklmnopqrstuvwxyz'" />
@@ -73,6 +76,9 @@
       <xsl:if test="normalize-space(f:frontmatter/f:meta[@name='layout']) != ''">
         <xsl:attribute name="data-layout"><xsl:value-of select="normalize-space(f:frontmatter/f:meta[@name='layout'])" /></xsl:attribute>
       </xsl:if>
+      <xsl:if test="normalize-space(f:frontmatter/f:meta[@name='footer']) != ''">
+        <xsl:attribute name="data-footer"><xsl:value-of select="normalize-space(f:frontmatter/f:meta[@name='footer'])" /></xsl:attribute>
+      </xsl:if>
 
       <xsl:if test="$is-deck">
         <xsl:variable name="page" select="ancestor-or-self::f:tree[last()]" />
@@ -109,9 +115,11 @@
         </xsl:if>
 
         <!-- Only units are presented, so anything else a deck or section holds (text, a paragraph,
-             a list) is lost on the stage and in print. Nothing is exempt yet; what is allowed
-             later (speaker notes) is to be taken out of $stray here, and nowhere else. -->
-        <xsl:variable name="stray" select="f:mainmatter/*[not(self::f:tree)] | f:mainmatter/text()[normalize-space(.) != '']" />
+             a list) is lost on the stage and in print. What is allowed, because it is not meant to be
+             shown as it stands, is taken out of $stray here, and nowhere else: so far the footer
+             definition (\footer, trees/meta/footer.tree), which deck.js draws on each slide; speaker
+             notes will join it. -->
+        <xsl:variable name="stray" select="f:mainmatter/*[not(self::f:tree)][not(self::html:div and @class = 'deck-footer-def')] | f:mainmatter/text()[normalize-space(.) != '']" />
         <xsl:if test="$stray">
           <xsl:variable name="text" select="normalize-space(string($stray[1]))" />
           <xsl:variable name="piece">
