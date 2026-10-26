@@ -345,7 +345,9 @@ body.presenting .deck-notice {
 
 /* ---- layouts for things that arrive in steps (trees/meta/fragments.tree) ---- */
 
-/* \steps: text on one side and a picture on the other, a row for each step. */
+/* \pairs and \steps: text on one side and a picture on the other. On the page and in print every
+   row is shown, so both lay out as a row for each pair or step. */
+.pairs,
 .steps {
   display: grid;
   grid-template-columns: var(--cols, 1fr 1fr);
@@ -355,8 +357,40 @@ body.presenting .deck-notice {
   margin: .5em 0;
 }
 
+.pairs > .pair,
 .steps > .step {
   display: contents;
+}
+
+/* While presenting, \steps is one picture at a time: the texts stack down the left, and every picture
+   is in the same place on the right, the one that is not on show hidden (it keeps its place, like
+   any step not yet come). deck.js says how many steps there are (--n). The last row, 1fr, is there
+   for a picture taller than the texts: a picture spanning only auto rows would stretch them apart,
+   but the one flexible row takes all the extra. Not in print, which has every row. */
+@media screen {
+  body.presenting .steps {
+    grid-template-rows: repeat(var(--n, 1), auto) 1fr;
+    row-gap: 0;
+  }
+
+  body.presenting .steps > .step > .step-text {
+    grid-column: 1;
+    margin-bottom: .6em;
+  }
+
+  body.presenting .steps > .step:last-child > .step-text {
+    margin-bottom: 0;
+  }
+
+  body.presenting .steps > .step > .step-visual {
+    grid-column: 2;
+    grid-row: 1 / -1;
+  }
+
+  /* The overview shows every step, which for pictures that replace one another is the last. */
+  body.presenting.overview .steps > .step:not(:last-child) > .step-visual {
+    visibility: hidden;
+  }
 }
 
 /* \qa: the answer sits under its question, set off. */
