@@ -87,6 +87,21 @@ function init() {
   // move between. A section nested in another counts, as it does in the go-to list.
   const sectionStarts = [...new Set([0, ...sectionList.slice(1).map((s) => members.get(s)[0]).filter((i) => i !== undefined)])]
     .sort((a, b) => a - b);
+  // A bare piece of text directly in a deck or section (deck.xsl warns about it: it is never presented)
+  // is a text node, which no stylesheet can hide and which the overview's grid would give a cell of its
+  // own. In an element it is neither; the rules that hide what is not a unit then hide it.
+  for (const unit of sectionList) {
+    for (const d of unit.querySelectorAll(':scope > details')) {
+      for (const node of [...d.childNodes]) {
+        if (node.nodeType !== Node.TEXT_NODE || node.textContent.trim() === '') continue;
+        const wrap = document.createElement('span');
+        wrap.className = 'deck-stray';
+        node.replaceWith(wrap);
+        wrap.append(node);
+      }
+    }
+  }
+
   // The segments of the progress bar: each section directly in the deck, and each run of slides that
   // sit directly in it (a title slide, a loose slide between sections).
   const segments = [];
