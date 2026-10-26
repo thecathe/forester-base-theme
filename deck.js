@@ -12,7 +12,7 @@
 // names a slide which is not there is shown as an error.
 //
 // Steps: an element with data-step-from="a" (and, if it goes away again, data-step-until="b") is
-// shown from step a up to, but not including, step b. \fragment, \incremental, \qa and \steps
+// shown from step a up to, but not including, step b. \fragment, \incremental, \qa, \pairs and \steps
 // (trees/meta/fragments.tree) write elements that are numbered automatically. "Next" takes the next
 // step of the slide on show and, when there are none left, the next slide.
 //
@@ -188,7 +188,8 @@ function init() {
   // The steps of a slide, worked out once. A fragment (see trees/meta/fragments.tree) is anything
   // with data-step-from, a .fragment, or an item of a list inside an .incremental. The ones that
   // do not say which step they arrive on are numbered in the order they are written, after
-  // whichever step came before.
+  // whichever step came before, except that the picture of a \steps step goes away when the next
+  // step's text arrives, so the right-hand column only ever shows one.
   const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li';
   const stepCache = new WeakMap();
   function stepsOf(slide) {
@@ -200,6 +201,12 @@ function init() {
         counter = Math.max(counter, from);
         return { el, from, until: el.dataset.stepUntil === undefined ? null : Number(el.dataset.stepUntil) };
       });
+      const byEl = new Map(list.map((f) => [f.el, f]));
+      for (const f of list) {
+        if (!f.el.matches('.step-visual')) continue;
+        const next = f.el.parentElement.nextElementSibling?.querySelector(':scope > .step-text');
+        if (next && byEl.has(next)) f.until = byEl.get(next).from;
+      }
       s = { list, count: Math.max(0, ...list.map((f) => Math.max(f.from, f.until ?? 0))) };
       stepCache.set(slide, s);
     }
@@ -844,6 +851,10 @@ function init() {
     root.querySelector(':scope > details > summary > header')?.append(present, resumeItem);
   }
   for (const block of root.querySelectorAll('.agenda')) buildAgenda(block);
+  // \steps lays its rows out by how many there are (deck.css), which only the markup can tell.
+  for (const block of root.querySelectorAll('.steps')) {
+    block.style.setProperty('--n', String(block.querySelectorAll(':scope > .step').length));
+  }
   buildFooters();
   for (const block of root.querySelectorAll('.deck-keys')) block.replaceChildren(keysTable());
   fillGoto();
