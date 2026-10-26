@@ -96,9 +96,17 @@
    own, so it reads on a plain slide and on a divider; the entry you are in is bold with a marker, and
    what is behind you is dimmed. */
 .agenda {
-  display: inline-block;
+  display: block;
+  width: fit-content;
   min-width: 14em;
   text-align: left;
+}
+
+/* A slide that centres what is on it centres the outline as a block, its lines still left-aligned. */
+section[data-layout="title"] .agenda:not(.agenda-all),
+section[data-layout="divider"] .agenda:not(.agenda-all) {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* The whole talk in a list is long: it flows into columns as wide as an entry needs. */

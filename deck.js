@@ -24,7 +24,8 @@
 // with an outline of the deck; while presenting, what is behind you is dimmed and where you are is bold.
 //
 // The ? button (or the key) lays the key bindings over the slide: they go away on Esc, which that press
-// consumes, or 3 seconds after the next key, which does its usual work. KEY_TABLE below is the one list of
+// consumes, on a click anywhere (full screen takes the first Esc itself), or 3 seconds after the next key,
+// which does its usual work. KEY_TABLE below is the one list of
 // them; the overlay and a \keys block (trees/meta/navigation.tree) both draw from it.
 //
 // The overview (key o, or the grid button) shows every slide at once, small, with every step shown;
@@ -60,7 +61,7 @@ const KEY_TABLE = [
   ]],
   ['Pointer', [
     [['Wheel', 'Trackpad'], 'Back and forward, once for each flick'],
-    [['Click'], 'A segment of the progress bar goes there; in the overview a slide goes there'],
+    [['Click'], 'A progress bar segment goes there; in the overview a slide goes there; on this list, closes it'],
   ]],
 ];
 const HELP_MS = 3000;
@@ -321,11 +322,10 @@ function init() {
   helpPanel.append(
     el('div', 'deck-help-title', 'Keyboard shortcuts'),
     keysTable(),
-    el('div', 'deck-help-note', `Esc closes this; so does a click, or ${HELP_MS / 1000} seconds after the next key.`),
+    el('div', 'deck-help-note', `Esc closes this; so does a click anywhere, or ${HELP_MS / 1000} seconds after the next key.`),
   );
   helpBox.append(helpPanel);
   helpBox.addEventListener('click', () => hideHelp());
-  helpPanel.addEventListener('click', (e) => e.stopPropagation());
   document.body.append(bar, errorBar, noticeBar, helpBox);
   document.body.tabIndex = -1;
 
