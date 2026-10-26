@@ -191,8 +191,8 @@ function init() {
   // whichever step came before, with two exceptions:
   //  - a fragment that is the first thing inside another fragment arrives with it, so that an item of
   //    a list never shows up empty before the step it holds (see hasContentBefore);
-  //  - the picture of a \steps step goes away when the next step's text arrives, so the right-hand
-  //    column only ever shows one.
+  //  - the picture of a \step (in \steps, or among the \pair of a \pairs) goes away when the next row
+  //    arrives, whether that is a \pair or a \step, so a step's picture is only ever there until then.
   const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li';
   const stepCache = new WeakMap();
 
@@ -226,7 +226,8 @@ function init() {
       const byEl = new Map(list.map((f) => [f.el, f]));
       for (const f of list) {
         if (!f.el.matches('.step-visual')) continue;
-        const next = f.el.parentElement.nextElementSibling?.querySelector(':scope > .step-text');
+        const row = f.el.parentElement.nextElementSibling;
+        const next = row && (row.matches('.fragment') ? row : row.querySelector('.fragment'));
         if (next && byEl.has(next)) f.until = byEl.get(next).from;
       }
       s = { list, count: Math.max(0, ...list.map((f) => Math.max(f.from, f.until ?? 0))) };
@@ -873,9 +874,12 @@ function init() {
     root.querySelector(':scope > details > summary > header')?.append(present, resumeItem);
   }
   for (const block of root.querySelectorAll('.agenda')) buildAgenda(block);
-  // \steps lays its rows out by how many there are (deck.css), which only the markup can tell.
-  for (const block of root.querySelectorAll('.steps')) {
-    block.style.setProperty('--n', String(block.querySelectorAll(':scope > .step').length));
+  // \pairs and \steps lay their rows out by row number and by how many there are (deck.css), which only
+  // the markup can tell.
+  for (const block of root.querySelectorAll('.pairs, .steps')) {
+    const rows = [...block.querySelectorAll(':scope > .pair, :scope > .step')];
+    block.style.setProperty('--n', String(rows.length));
+    rows.forEach((row, i) => row.style.setProperty('--r', String(i + 1)));
   }
   buildFooters();
   for (const block of root.querySelectorAll('.deck-keys')) block.replaceChildren(keysTable());
