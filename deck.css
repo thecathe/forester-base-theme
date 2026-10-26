@@ -210,7 +210,7 @@ section[data-layout="divider"] .agenda:not(.agenda-all) {
 }
 
 .deck-keys .keys-table {
-  font-size: .64em;
+  font-size: .58em;
 }
 
 /* The ? overlay: over everything, away on Esc, a click, or 3 seconds after the next key. */
@@ -254,6 +254,49 @@ section[data-layout="divider"] .agenda:not(.agenda-all) {
   margin-top: .4em;
   font-size: .85em;
   opacity: .7;
+}
+
+/* ---- footers (trees/meta/footer.tree) ----
+   \footer writes a hidden definition; deck.js adds a footer to each slide that has one. It is shown on the
+   stage, in the overview and in print (which have their own rules for the slide), never on the page. */
+.deck-footer-def,
+.deck-footer {
+  display: none;
+}
+
+body.presenting section[data-deck="slide"].current > .deck-footer {
+  display: grid;
+}
+
+.deck-footer {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--footer-lift, 0) / .52 * 1em);
+  left: 0;
+  box-sizing: border-box;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, .5fr);
+  gap: 1em;
+  align-items: end;
+  padding: 0 4% .5em;
+  font-size: .52em;
+  line-height: 1.25;
+  opacity: .65;
+  pointer-events: none;
+}
+
+.deck-footer-zone:nth-child(1) { text-align: left; }
+.deck-footer-zone:nth-child(2) { text-align: center; }
+.deck-footer-zone:nth-child(3) { text-align: right; }
+
+/* Room under a plain slide's content for the footer, so that content which would run into it is
+   flagged as cut off. A slide that centres its content has the room already. */
+body.presenting section[data-deck="slide"].current.deck-has-footer:not([data-layout]) {
+  padding-bottom: 2.3em;
+}
+
+/* In the overview the thumbnails are not under the toolbar. */
+body.presenting.overview section[data-deck="slide"].current > .deck-footer {
+  bottom: 0;
 }
 
 /* A link to a slide that does not exist (a problem with the address, shown in either mode). */
@@ -907,6 +950,7 @@ body.presenting section[data-layout="bare"].current img {
   }
 
   section[data-deck="slide"] {
+    position: relative;
     box-sizing: border-box;
     width: 1280px;
     height: 720px;
@@ -923,6 +967,16 @@ body.presenting section[data-layout="bare"].current img {
 
   section[data-deck="slide"] > details {
     margin: 0;
+  }
+
+  /* the footer (see above): on every page that has one, at the foot of the page */
+  section[data-deck="slide"] > .deck-footer {
+    display: grid;
+    bottom: 0;
+  }
+
+  section[data-deck="slide"].deck-has-footer:not([data-layout]) {
+    padding-bottom: 2.3em;
   }
 
   section[data-deck="slide"] > details > summary {

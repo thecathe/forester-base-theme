@@ -20,6 +20,12 @@
 // that content is never presented). While presenting, a slide inside such a section says so in a
 // yellow banner and an outline, and the go-to list marks the section.
 //
+// \footer{left}{centre}{right} (trees/meta/footer.tree) writes a hidden definition into a deck or a
+// section; each slide takes the nearest one at or above its section and gets a footer drawn from it, with
+// \var-section, \var-slide and the rest filled in for that slide. On the stage, in print and in the
+// overview; not on the ordinary page. Title and bare slides have none unless they say \meta{footer}{show},
+// and any slide can say \meta{footer}{none}.
+//
 // \agenda (trees/meta/navigation.tree) writes an empty block that is filled here, from the same marks,
 // with an outline of the deck; while presenting, what is behind you is dimmed and where you are is bold.
 //
@@ -450,7 +456,20 @@ function init() {
   function layoutBar() {
     const room = presenting && !document.fullscreenElement ? bar.offsetHeight : 0;
     document.body.style.setProperty('--bar-h', `${room}px`);
+    liftFooters();
     checkOverflow();
+  }
+
+  // In full screen the toolbar is a strip over the slide's lower edge, where the footer is. The footer
+  // is raised by the part of the stage the strip covers (in the slide's own em, which deck.css reads).
+  function liftFooters() {
+    let lift = 0;
+    if (presenting && document.fullscreenElement) {
+      const w = Math.min(innerWidth, (innerHeight * 16) / 9);
+      const stageBottom = (innerHeight + (w * 9) / 16) / 2;
+      lift = Math.max(0, stageBottom - (innerHeight - bar.offsetHeight)) / (w * 0.022);
+    }
+    document.body.style.setProperty('--footer-lift', String(lift));
   }
   new ResizeObserver(layoutBar).observe(bar);
 
@@ -621,6 +640,50 @@ function init() {
     if (list && list.children.length > 0) block.replaceChildren(list);
   }
 
+  // ---- footers ----
+
+  // What a \var-... block stands for on slide i.
+  function varText(name, i) {
+    switch (name) {
+      case 'section': return titleOf(innermost(i));
+      case 'trail': return trailOf(i);
+      case 'slide': return String(i + 1);
+      case 'slides': return String(slides.length);
+      case 'deck': return titleOf(root);
+      default: return '';
+    }
+  }
+
+  // The footer a slide has by default: none on a title or a bare slide, which have the stage to themselves.
+  const wantsFooter = (slide) => {
+    const say = slide.dataset.footer;
+    return say === 'show' || (say !== 'none' && slide.dataset.layout !== 'title' && slide.dataset.layout !== 'bare');
+  };
+
+  function buildFooters() {
+    slides.forEach((slide, i) => {
+      const chain = sectionsOf[i];
+      let def = null;
+      for (let k = chain.length - 1; k >= 0 && !def; k--) def = chain[k].querySelector(':scope > details > .deck-footer-def');
+      if (def && wantsFooter(slide)) {
+        const footer = el('div', 'deck-footer');
+        let any = false;
+        for (const zone of [...def.children].slice(0, 3)) {
+          const box = el('div', 'deck-footer-zone');
+          for (const node of zone.childNodes) box.append(node.cloneNode(true));
+          any = any || box.textContent.trim() !== '' || box.children.length > 0;
+          footer.append(box);
+        }
+        // A definition with nothing in it is how a section says it wants no footer.
+        if (any) {
+          slide.append(footer);
+          slide.classList.add('deck-has-footer');
+        }
+      }
+      for (const v of slide.querySelectorAll('.deck-var')) v.textContent = varText(v.dataset.var, i);
+    });
+  }
+
   // Dim what is behind the slide on show and make bold the entry that holds it; nothing is marked off
   // the stage, where there is no "now".
   function markAgendas() {
@@ -781,6 +844,7 @@ function init() {
     root.querySelector(':scope > details > summary > header')?.append(present, resumeItem);
   }
   for (const block of root.querySelectorAll('.agenda')) buildAgenda(block);
+  buildFooters();
   for (const block of root.querySelectorAll('.deck-keys')) block.replaceChildren(keysTable());
   fillGoto();
 
@@ -902,7 +966,7 @@ function init() {
   followAddress();
 
   // Recheck what fits when the size changes and when the maths and fonts have arrived.
-  window.addEventListener('resize', checkOverflow);
+  window.addEventListener('resize', () => { liftFooters(); checkOverflow(); });
   window.addEventListener('load', checkOverflow);
   document.fonts?.ready.then(checkOverflow);
   let pending = 0;
