@@ -20,6 +20,11 @@
 // that content is never presented). While presenting, a slide inside such a section says so in a
 // yellow banner and an outline, and the go-to list marks the section.
 //
+// The overview (key o, or the grid button) shows every slide at once, small, with every step shown;
+// arrows move between them, enter or a click goes to one, escape or o comes back to where you were.
+// It reuses the stage's own look: every slide is given the class of the one on show, and the
+// stylesheet scales them down.
+//
 // Scrolling the wheel or trackpad does the same as the arrow keys, once for each flick.
 //
 // While presenting, a toolbar sits above the slide (below it, faint, over the slide's edge, when the
@@ -157,6 +162,7 @@ function init() {
     copy: '<rect x="6" y="6" width="7.5" height="7.5" rx="1.5"/><path d="M3.5 10V4A1.5 1.5 0 0 1 5 2.5h5.5"/>',
     check: '<path d="M3 8.5l3.2 3.2L13 4.8"/>',
     hook: '<path d="M2.5 4h6a3.5 3.5 0 0 1 3.5 3.5V13"/><path d="M9.8 10.5L12 13l2.2-2.5"/>',
+    grid: '<rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><rect x="9" y="9" width="4.5" height="4.5" rx="1"/>',
   };
   const icon = (name) => {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -200,6 +206,9 @@ function init() {
   const warn = el('span', 'deck-warn', '⚠ cut off');
   warn.hidden = true;
   const fullButton = button('deck-full', '⛶', 'Full screen (f)', () => toggleFullscreen());
+  const overviewButton = button('deck-overview', '', 'Overview of every slide (o)', () => (overview ? leaveOverview(true) : openOverview()));
+  overviewButton.append(icon('grid'));
+  overviewButton.setAttribute('aria-label', 'Overview of every slide');
 
   const bar = el('div', 'deck-bar');
   bar.setAttribute('role', 'toolbar');
@@ -209,7 +218,7 @@ function init() {
   const jump = el('span', 'deck-group deck-jump');
   jump.append(gotoLabel, gotoSelect, modes);
   const tools = el('span', 'deck-group deck-tools');
-  tools.append(warn, where, fullButton);
+  tools.append(warn, where, overviewButton, fullButton);
   // The progress bar: a segment for each part of the talk, as wide as it has slides, filled as far as
   // you have got. Pointing at one names it; clicking goes to its first slide.
   const progress = el('div', 'deck-progress');
@@ -248,6 +257,8 @@ function init() {
   let current = -1;
   let step = 0;
   let presenting = false;
+  let overview = false;
+  let selected = 0;
   let resume = null;
   let gotoMode = 'sections';
   let whereLabel = '';
@@ -343,7 +354,7 @@ function init() {
   }
 
   function checkOverflow() {
-    if (!presenting || current < 0) return;
+    if (!presenting || current < 0 || overview) return;
     const s = slides[current];
     const over = s.scrollHeight > s.clientHeight + 2 || s.scrollWidth > s.clientWidth + 2;
     warn.hidden = !over;
@@ -375,6 +386,7 @@ function init() {
   }
 
   function show(index, newStep = 0, writeAddress = true) {
+    leaveOverview();
     clearShown();
     current = index;
     step = newStep;
@@ -408,8 +420,100 @@ function init() {
     show(index, newStep, writeAddress);
   }
 
+  // ---- the overview ----
+
+  // Every slide takes the class of the one on show, and every section the class of those around it,
+  // so the stage's own rules lay each one out; deck.css scales them into a grid.
+  function openOverview() {
+    if (!presenting || overview) return;
+    overview = true;
+    selected = current;
+    document.body.classList.add('overview');
+    noticeBar.hidden = true;
+    for (const s of sectionList) {
+      s.classList.add('in-chain');
+      const d = s.querySelector(':scope > details');
+      if (d) d.open = true;
+    }
+    slides.forEach((slide, i) => {
+      slide.classList.add('current');
+      slide.classList.toggle('deck-warned', sectionsOf[i].some((s) => warningOf(s)));
+      slide.dataset.n = String(i + 1);
+      slide.title = `${i + 1}. ${titleOf(slide)}`;
+      const d = slide.querySelector(':scope > details');
+      if (d) d.open = true;
+    });
+    slides[selected].classList.add('overview-selected');
+    slides[selected].scrollIntoView({ block: 'center' });
+  }
+
+  // Back to the page as it was, with nothing of the overview left on it. Callers that go somewhere
+  // call show() next; with `stay`, this puts the slide you came from back on show.
+  function leaveOverview(stay = false) {
+    if (!overview) return;
+    overview = false;
+    document.body.classList.remove('overview');
+    for (const slide of slides) {
+      slide.classList.remove('current', 'deck-warned', 'overview-selected');
+      slide.removeAttribute('data-n');
+      slide.removeAttribute('title');
+    }
+    for (const s of sectionList) s.classList.remove('in-chain');
+    if (stay) show(current, step);
+  }
+
+  function select(i) {
+    slides[selected].classList.remove('overview-selected');
+    selected = i;
+    slides[selected].classList.add('overview-selected');
+    slides[selected].scrollIntoView({ block: 'nearest' });
+  }
+
+  // How many slides are in a row of the grid, for the up and down arrows.
+  function overviewColumns() {
+    const top = slides[0].getBoundingClientRect().top;
+    return Math.max(1, slides.filter((s) => Math.abs(s.getBoundingClientRect().top - top) < 2).length);
+  }
+
+  function overviewKey(e) {
+    let to = selected;
+    switch (e.key) {
+      case 'ArrowRight': to++; break;
+      case 'ArrowLeft': to--; break;
+      case 'ArrowDown': to += overviewColumns(); break;
+      case 'ArrowUp': to -= overviewColumns(); break;
+      case 'Home': to = 0; break;
+      case 'End': to = last; break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        show(selected, selected === current ? step : 0);
+        return;
+      case 'Escape':
+      case 'o':
+      case 'O':
+        e.preventDefault();
+        leaveOverview(true);
+        return;
+      case 'f':
+      case 'F':
+        toggleFullscreen();
+        break;
+      default: return;
+    }
+    e.preventDefault();
+    select(Math.min(last, Math.max(0, to)));
+  }
+
+  slides.forEach((slide, i) => {
+    slide.addEventListener('click', () => {
+      if (overview) show(i, i === current ? step : 0);
+    });
+  });
+
   function exit() {
     if (!presenting) return;
+    leaveOverview();
     presenting = false;
     // Where to pick up again, unless that is just the start.
     resume = current > 0 || step > 0 ? { index: current, step } : null;
@@ -508,6 +612,10 @@ function init() {
   document.addEventListener('keydown', (e) => {
     if (!presenting || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.composedPath().some((n) => n instanceof Element && n.matches('input, textarea, select, [contenteditable], ninja-keys'))) return;
+    if (overview) {
+      overviewKey(e);
+      return;
+    }
     // A focused link or button keeps the keys that activate it.
     const activates = e.target instanceof Element && e.target.closest('a, button, summary') !== null;
     let handled = true;
@@ -523,6 +631,7 @@ function init() {
     else if (e.key === 'End') show(last, stepsOf(slides[last]).count);
     else if (e.key === 'Escape') exit();
     else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+    else if (e.key === 'o' || e.key === 'O') openOverview();
     else handled = false;
     if (!handled) return;
     e.preventDefault();
@@ -545,7 +654,7 @@ function init() {
   };
   const wheel = { last: -Infinity, lastDelta: 0, dir: 0, pushed: 0, spent: false, moved: -Infinity };
   document.addEventListener('wheel', (e) => {
-    if (!presenting || e.ctrlKey || e.metaKey) return; // ctrl and wheel is the browser's zoom
+    if (!presenting || overview || e.ctrlKey || e.metaKey) return; // ctrl and wheel is the browser's zoom; the overview scrolls
     e.preventDefault();
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
     const d = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;

@@ -535,6 +535,92 @@ body.presenting:not(.deck-fullscreen) .deck-modes button:first-child {
   border-left-width: 1px;
 }
 
+/* ---- the overview ----
+   deck.js gives every slide the class of the one on show (.current), so the stage rules above lay each
+   one out as they would on the stage; here they are put in a grid and scaled down. --thumb is the scale. */
+body.presenting.overview {
+  overflow: auto;
+}
+
+body.overview section[data-deck="deck"].in-chain {
+  --thumb: .22;
+}
+
+/* A <details> keeps what is inside it in a box of its own, ::details-content, so that is the box to
+   lay out as a grid; a section in the deck is made transparent, box by box, so that every slide in the
+   talk is an item of the one grid. */
+body.overview section[data-deck="deck"].in-chain > details::details-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, calc(1280px * var(--thumb)));
+  justify-content: center;
+  gap: 1.3rem;
+  padding: calc(var(--bar-h, 0px) + 1.3rem) 1.3rem 4rem;
+}
+
+body.overview section[data-deck="section"].in-chain,
+body.overview section[data-deck="section"].in-chain > details,
+body.overview section[data-deck="section"].in-chain > details::details-content {
+  display: contents;
+}
+
+body.presenting.overview section[data-deck="slide"].current {
+  --stage-w: 1280px;
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: auto;
+  width: 1280px;
+  height: 720px;
+  margin: 0;
+  zoom: var(--thumb);
+  cursor: pointer;
+}
+
+body.overview section[data-deck="slide"].current * {
+  pointer-events: none;
+}
+
+/* Every step is shown, and the slide's own outline for a problem keeps its size. */
+body.overview .deck-hidden {
+  visibility: visible;
+}
+
+body.presenting.overview section[data-deck="slide"].current.deck-warned {
+  outline-width: .8em;
+  outline-offset: -.8em;
+}
+
+body.presenting.overview section[data-deck="slide"].current:hover {
+  outline: calc(3px / var(--thumb)) solid rgba(127, 180, 255, .7);
+  outline-offset: calc(3px / var(--thumb));
+}
+
+body.presenting.overview section[data-deck="slide"].current.overview-selected {
+  outline: calc(4px / var(--thumb)) solid #7fb4ff;
+  outline-offset: calc(3px / var(--thumb));
+}
+
+/* The slide's number, drawn at the size of the page and not of the slide. */
+body.overview section[data-deck="slide"].current::before {
+  content: attr(data-n);
+  position: absolute;
+  top: .3rem;
+  right: .3rem;
+  z-index: 2;
+  zoom: calc(1 / var(--thumb));
+  padding: 0 .4em;
+  font: 700 12px/1.5 system-ui, sans-serif;
+  color: #fff;
+  background: rgba(0, 0, 0, .6);
+  border-radius: .3em;
+}
+
+body.overview .deck-notice {
+  display: none;
+}
+
 /* ---- slide layouts (trees/meta/layouts.tree) ----
    \titleslide, \divider and \bare set \meta{layout}{...}, which the build writes as data-layout on the
    slide. Written once for presenting and once for print, like the rest of the slide look. */
