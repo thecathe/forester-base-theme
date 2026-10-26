@@ -62,6 +62,36 @@
   background: rgba(91, 156, 240, .12);
 }
 
+/* A deck or section with content that is not a slide, so is never presented (deck.xsl writes the
+   reason into data-deck-warn). On the page it is outlined in yellow with the reason across its top,
+   like the blue flash above but staying; while presenting, deck.js says it in a banner instead. */
+@media screen {
+  section[data-deck-warn] {
+    outline: 3px solid #f2b705;
+    outline-offset: 2px;
+    background: rgba(242, 183, 5, .1);
+  }
+
+  section[data-deck-warn]::before {
+    content: "\26A0  " attr(data-deck-warn);
+    display: block;
+    margin: 0 0 .6em;
+    padding: .3em .7em;
+    font: 600 .85rem/1.35 system-ui, sans-serif;
+    color: #3b2c00;
+    background: #f2b705;
+  }
+
+  body.presenting section[data-deck-warn] {
+    outline: none;
+    background: none;
+  }
+
+  body.presenting section[data-deck-warn]::before {
+    display: none;
+  }
+}
+
 /* A link to a slide that does not exist (a problem with the address, shown in either mode). */
 .deck-error {
   position: fixed;
@@ -76,11 +106,29 @@
 }
 
 .deck-error[hidden],
-.deck-warn[hidden] {
+.deck-warn[hidden],
+.deck-notice[hidden] {
   display: none;
 }
 
 body.presenting .deck-error {
+  top: var(--bar-h, 0px);
+}
+
+/* Content on this slide's section (or the deck) that is not being presented. Under the error bar. */
+.deck-notice {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 39;
+  padding: .4em 1em;
+  font: 600 11pt/1.3 system-ui, sans-serif;
+  color: #3b2c00;
+  background: #f2b705;
+}
+
+body.presenting .deck-notice {
   top: var(--bar-h, 0px);
 }
 
@@ -155,6 +203,13 @@ body.presenting section[data-deck].in-chain > details {
   padding: 0;
 }
 
+/* A bare piece of text in a section is a text node, which no selector below can hide. It takes no
+   size instead: the slide sets its own, so nothing of the slide's is affected. */
+body.presenting section[data-deck].in-chain > details {
+  font-size: 0;
+  line-height: 0;
+}
+
 body.presenting section[data-deck].in-chain > details > :not(section[data-deck]) {
   display: none;
 }
@@ -179,6 +234,11 @@ body.presenting section[data-deck="slide"].current {
   font-size: calc(var(--stage-w) * .022);
   line-height: 1.35;
   hyphens: manual;
+}
+
+body.presenting section[data-deck="slide"].current.deck-warned {
+  outline: .35em solid #f2b705;
+  outline-offset: -.35em;
 }
 
 body.presenting section[data-deck="slide"].current > details {
@@ -515,7 +575,8 @@ body.presenting section[data-layout="bare"].current img {
   ninja-keys,
   article > footer,
   .deck-bar,
-  .deck-error {
+  .deck-error,
+  .deck-notice {
     display: none !important;
   }
 
@@ -537,6 +598,13 @@ body.presenting section[data-layout="bare"].current img {
   section[data-deck="deck"] > details,
   section[data-deck="section"] > details {
     margin: 0;
+    /* bare text in a section: see the same rule above */
+    font-size: 0;
+    line-height: 0;
+  }
+
+  section[data-deck="slide"].deck-warned {
+    outline: none !important;
   }
 
   section[data-deck="deck"] > details > :not(section[data-deck]),
