@@ -361,45 +361,44 @@ body.presenting .deck-notice {
   display: contents;
 }
 
-/* While presenting, the texts stack down the left, a row each, and a pair's picture sits beside its text. A
-   step's picture sits beside its text too, but is laid over the rows below it as well (it is only there
-   until the next row arrives), so a tall one does not push the next texts down. Every cell is therefore
-   placed by its row number (--r, and --n for how many, both set by deck.js), and the one picture of a
-   step that is not on show is hidden but keeps its place, like any step not yet come. The last row, 1fr, is
-   there for a picture taller than the texts: spanning only auto rows it would stretch them apart, but the
-   one flexible row takes all the extra. Not in print, which has every row. */
-@media screen {
-  body.presenting :is(.pairs, .steps) {
-    grid-template-rows: repeat(var(--n, 1), auto) 1fr;
-    row-gap: 0;
-  }
+/* While presenting, and on each printed page of a slide that prints as several (deck.js, printFrames), the
+   texts stack down the left, a row each, and a pair's picture sits beside its text. A step's picture sits
+   beside its text too, but is laid over the rows below it as well (it is only there until the next row
+   arrives), so a tall one does not push the next texts down. Every cell is therefore placed by its row
+   number (--r, and --n for how many, both set by deck.js), and the one picture of a step that is not on
+   show is hidden but keeps its place, like any step not yet come. The last row, 1fr, is there for a
+   picture taller than the texts: spanning only auto rows it would stretch them apart, but the one flexible
+   row takes all the extra. The ordinary page and a slide that prints on one page have every row. */
+:is(body.presenting, .deck-frame) :is(.pairs, .steps) {
+  grid-template-rows: repeat(var(--n, 1), auto) 1fr;
+  row-gap: 0;
+}
 
-  body.presenting :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text, .pair-visual) {
-    grid-row: var(--r);
-    margin-bottom: .6em;
-  }
+:is(body.presenting, .deck-frame) :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text, .pair-visual) {
+  grid-row: var(--r);
+  margin-bottom: .6em;
+}
 
-  body.presenting :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text) {
-    grid-column: 1;
-  }
+:is(body.presenting, .deck-frame) :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text) {
+  grid-column: 1;
+}
 
-  body.presenting :is(.pairs, .steps) > .pair > .pair-visual {
-    grid-column: 2;
-  }
+:is(body.presenting, .deck-frame) :is(.pairs, .steps) > .pair > .pair-visual {
+  grid-column: 2;
+}
 
-  body.presenting :is(.pairs, .steps) > .step > .step-visual {
-    grid-column: 2;
-    grid-row: var(--r) / -1;
-  }
+:is(body.presenting, .deck-frame) :is(.pairs, .steps) > .step > .step-visual {
+  grid-column: 2;
+  grid-row: var(--r) / -1;
+}
 
-  body.presenting :is(.pairs, .steps) > :last-child > :is(.pair-text, .step-text, .pair-visual) {
-    margin-bottom: 0;
-  }
+:is(body.presenting, .deck-frame) :is(.pairs, .steps) > :last-child > :is(.pair-text, .step-text, .pair-visual) {
+  margin-bottom: 0;
+}
 
-  /* The overview shows every step, which for pictures that go when the next row arrives is the last. */
-  body.presenting.overview :is(.pairs, .steps) > .step:not(:last-child) > .step-visual {
-    visibility: hidden;
-  }
+/* The overview shows every step, which for pictures that go when the next row arrives is the last. */
+body.presenting.overview :is(.pairs, .steps) > .step:not(:last-child) > .step-visual {
+  visibility: hidden;
 }
 
 /* \qa: the answer sits under its question, set off. */
@@ -526,7 +525,8 @@ body.presenting section[data-deck="slide"].current img {
 }
 
 /* A step that has not come yet keeps its place, so nothing jumps. */
-body.presenting .deck-hidden {
+body.presenting .deck-hidden,
+.deck-frame .deck-hidden {
   visibility: hidden;
 }
 
