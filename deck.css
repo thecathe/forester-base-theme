@@ -107,8 +107,9 @@
 }
 
 .agenda-all > .agenda-list {
-  columns: 15em;
+  column-count: var(--agenda-cols, 2);
   column-gap: 2em;
+  font-size: var(--agenda-size, .8em);
 }
 
 .agenda-all > .agenda-list > li {
@@ -154,6 +155,97 @@
 
 .agenda-current > a::before {
   content: "\25B8\00a0";
+}
+
+/* The key bindings: the ? overlay and a \keys block (trees/meta/navigation.tree) share this table. No
+   colours of their own beyond the overlay's panel, so a \keys block reads on a plain slide. */
+.keys-table {
+  font-size: 1em;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.keys-group {
+  margin: 0 0 .55em;
+  break-inside: avoid;
+}
+
+.keys-title {
+  margin-bottom: .25em;
+  font-size: .8em;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  opacity: .65;
+}
+
+.keys-row {
+  display: grid;
+  grid-template-columns: minmax(10em, 17em) 1fr;
+  gap: .1em .9em;
+  align-items: baseline;
+  padding: .06em 0;
+}
+
+.keys-table kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  margin: 0 .25em .15em 0;
+  padding: .02em .4em;
+  font: 600 .88em/1.4 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  text-align: center;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-bottom-width: 2px;
+  border-radius: .3em;
+}
+
+.deck-keys .keys-table {
+  font-size: .64em;
+}
+
+/* The ? overlay: over everything, away on Esc, a click, or 3 seconds after the next key. */
+.deck-help {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .55);
+  cursor: pointer;
+}
+
+.deck-help[hidden] {
+  display: none;
+}
+
+.deck-help-panel {
+  box-sizing: border-box;
+  width: min(46rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: .9rem 1.4rem;
+  font: 14px/1.35 system-ui, sans-serif;
+  color: #eef3fb;
+  background: #1d2a3f;
+  border: 1px solid #5b9cf0;
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
+  cursor: default;
+}
+
+.deck-help-title {
+  margin-bottom: .7em;
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+.deck-help-note {
+  margin-top: .4em;
+  font-size: .85em;
+  opacity: .7;
 }
 
 /* A link to a slide that does not exist (a problem with the address, shown in either mode). */
@@ -769,7 +861,8 @@ body.presenting section[data-layout="bare"].current img {
   article > footer,
   .deck-bar,
   .deck-error,
-  .deck-notice {
+  .deck-notice,
+  .deck-help {
     display: none !important;
   }
 
