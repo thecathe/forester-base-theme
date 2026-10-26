@@ -362,11 +362,13 @@ body.presenting .deck-notice {
 }
 
 /* While presenting, and on each printed page of a slide that prints as several (deck.js, printFrames), the
-   texts stack down the left, a row each, and a pair's picture sits beside its text. A step's picture sits
-   beside its text too, but is laid over the rows below it as well (it is only there until the next row
-   arrives), so a tall one does not push the next texts down. Every cell is therefore placed by its row
-   number (--r, and --n for how many, both set by deck.js), and the one picture of a step that is not on
-   show is hidden but keeps its place, like any step not yet come. The last row, 1fr, is there for a
+   texts stack down the left, a row each, and a pair's picture sits beside its text. A step's picture is
+   laid over the rows from its place down to the last, since it is only there until the next row arrives,
+   so a tall one does not push the next texts down. In a \steps that place is the top of the right column
+   (the column holds one picture at a time, and each starts where the last did); among the \pair of a
+   \pairs it is beside the step's own text, as a pair's picture would be. Every cell is therefore placed by
+   its row number (--r, and --n for how many, both set by deck.js), and the picture of a step that is not
+   on show is hidden but keeps its place, like any step not yet come. The last row, 1fr, is there for a
    picture taller than the texts: spanning only auto rows it would stretch them apart, but the one flexible
    row takes all the extra. The ordinary page and a slide that prints on one page have every row. */
 :is(body.presenting, .deck-frame) :is(.pairs, .steps) {
@@ -390,6 +392,15 @@ body.presenting .deck-notice {
 :is(body.presenting, .deck-frame) :is(.pairs, .steps) > .step > .step-visual {
   grid-column: 2;
   grid-row: var(--r) / -1;
+}
+
+:is(body.presenting, .deck-frame) .steps > .step > .step-visual {
+  grid-row: 1 / -1;
+}
+
+/* So that the two columns of a \steps start level, whatever a list or a paragraph has above it. */
+:is(body.presenting, .deck-frame) .steps > .step > :is(.step-text, .step-visual) :is(ul, ol, p):first-child {
+  margin-top: 0;
 }
 
 :is(body.presenting, .deck-frame) :is(.pairs, .steps) > :last-child > :is(.pair-text, .step-text, .pair-visual) {
