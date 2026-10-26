@@ -455,8 +455,11 @@ li :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text)::before
   margin-bottom: 0;
 }
 
-/* The overview shows every step, which for pictures that go when the next row arrives is the last. */
-body.presenting.overview :is(.pairs, .steps) > .step:not(:last-child) > .step-visual {
+/* The overview shows every step, which for pictures that go when the next row arrives is the last. What is
+   in a picture that is hidden stays hidden too: the overview makes every step visible, one by one, and a
+   step inside a hidden picture (an item of a list in it) would otherwise show through. */
+body.presenting.overview :is(.pairs, .steps) > .step:not(:last-child) > .step-visual,
+body.presenting.overview :is(.pairs, .steps) > .step:not(:last-child) > .step-visual * {
   visibility: hidden;
 }
 
