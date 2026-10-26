@@ -92,6 +92,70 @@
   }
 }
 
+/* \agenda (trees/meta/navigation.tree): the outline deck.js writes into the block. No colours of its
+   own, so it reads on a plain slide and on a divider; the entry you are in is bold with a marker, and
+   what is behind you is dimmed. */
+.agenda {
+  display: inline-block;
+  min-width: 14em;
+  text-align: left;
+}
+
+/* The whole talk in a list is long: it flows into columns as wide as an entry needs. */
+.agenda-all {
+  display: block;
+}
+
+.agenda-all > .agenda-list {
+  columns: 15em;
+  column-gap: 2em;
+}
+
+.agenda-all > .agenda-list > li {
+  break-inside: avoid;
+}
+
+.agenda-list {
+  margin: .2em 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.agenda-list .agenda-list {
+  padding-left: 1.2em;
+  font-size: .92em;
+}
+
+.agenda-list li {
+  margin: .2em 0;
+}
+
+.agenda-section > a {
+  font-weight: 600;
+}
+
+.agenda a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.agenda a:hover {
+  text-decoration: underline;
+}
+
+.agenda-done > a,
+.agenda-done > .agenda-list {
+  opacity: .45;
+}
+
+.agenda-current > a {
+  font-weight: 800;
+}
+
+.agenda-current > a::before {
+  content: "\25B8\00a0";
+}
+
 /* A link to a slide that does not exist (a problem with the address, shown in either mode). */
 .deck-error {
   position: fixed;
