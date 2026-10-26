@@ -9,6 +9,7 @@
   <xsl:include href="links.xsl" />
   <xsl:include href="tree.xsl" />
   <xsl:include href="deck.xsl" />
+  <xsl:include href="colour.xsl" />
 
   <!-- <xsl:template match="pause"></xsl:template> -->
 
