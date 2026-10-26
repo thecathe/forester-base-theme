@@ -92,6 +92,70 @@
   }
 }
 
+/* \agenda (trees/meta/navigation.tree): the outline deck.js writes into the block. No colours of its
+   own, so it reads on a plain slide and on a divider; the entry you are in is bold with a marker, and
+   what is behind you is dimmed. */
+.agenda {
+  display: inline-block;
+  min-width: 14em;
+  text-align: left;
+}
+
+/* The whole talk in a list is long: it flows into columns as wide as an entry needs. */
+.agenda-all {
+  display: block;
+}
+
+.agenda-all > .agenda-list {
+  columns: 15em;
+  column-gap: 2em;
+}
+
+.agenda-all > .agenda-list > li {
+  break-inside: avoid;
+}
+
+.agenda-list {
+  margin: .2em 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.agenda-list .agenda-list {
+  padding-left: 1.2em;
+  font-size: .92em;
+}
+
+.agenda-list li {
+  margin: .2em 0;
+}
+
+.agenda-section > a {
+  font-weight: 600;
+}
+
+.agenda a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.agenda a:hover {
+  text-decoration: underline;
+}
+
+.agenda-done > a,
+.agenda-done > .agenda-list {
+  opacity: .45;
+}
+
+.agenda-current > a {
+  font-weight: 800;
+}
+
+.agenda-current > a::before {
+  content: "\25B8\00a0";
+}
+
 /* A link to a slide that does not exist (a problem with the address, shown in either mode). */
 .deck-error {
   position: fixed;
@@ -452,6 +516,49 @@ body.presenting.deck-fullscreen .deck-bar .deck-stop {
   display: none;
 }
 
+/* The progress bar, the last row of the toolbar. */
+.deck-progress {
+  display: flex;
+  flex: 0 0 100%;
+  gap: 2px;
+  height: 6px;
+  margin-top: .15em;
+  transition: height .1s;
+}
+
+.deck-progress:hover {
+  height: 11px;
+}
+
+.deck-seg {
+  position: relative;
+  min-width: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, .22);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.deck-seg-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: #7fb4ff;
+}
+
+.deck-seg-here .deck-seg-fill {
+  background: #fff;
+}
+
+body.presenting.deck-fullscreen .deck-seg-fill {
+  background: #6b8fc4;
+}
+
+body.presenting.deck-fullscreen .deck-seg-here .deck-seg-fill {
+  background: #cfe3ff;
+}
+
 .deck-warn {
   color: #ffb4ab;
   font-weight: 700;
@@ -490,6 +597,92 @@ body.presenting:not(.deck-fullscreen) .deck-goto {
 body.presenting:not(.deck-fullscreen) .deck-modes button:first-child {
   border-radius: 0;
   border-left-width: 1px;
+}
+
+/* ---- the overview ----
+   deck.js gives every slide the class of the one on show (.current), so the stage rules above lay each
+   one out as they would on the stage; here they are put in a grid and scaled down. --thumb is the scale. */
+body.presenting.overview {
+  overflow: auto;
+}
+
+body.overview section[data-deck="deck"].in-chain {
+  --thumb: .22;
+}
+
+/* A <details> keeps what is inside it in a box of its own, ::details-content, so that is the box to
+   lay out as a grid; a section in the deck is made transparent, box by box, so that every slide in the
+   talk is an item of the one grid. */
+body.overview section[data-deck="deck"].in-chain > details::details-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, calc(1280px * var(--thumb)));
+  justify-content: center;
+  gap: 1.3rem;
+  padding: calc(var(--bar-h, 0px) + 1.3rem) 1.3rem 4rem;
+}
+
+body.overview section[data-deck="section"].in-chain,
+body.overview section[data-deck="section"].in-chain > details,
+body.overview section[data-deck="section"].in-chain > details::details-content {
+  display: contents;
+}
+
+body.presenting.overview section[data-deck="slide"].current {
+  --stage-w: 1280px;
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: auto;
+  width: 1280px;
+  height: 720px;
+  margin: 0;
+  zoom: var(--thumb);
+  cursor: pointer;
+}
+
+body.overview section[data-deck="slide"].current * {
+  pointer-events: none;
+}
+
+/* Every step is shown, and the slide's own outline for a problem keeps its size. */
+body.overview .deck-hidden {
+  visibility: visible;
+}
+
+body.presenting.overview section[data-deck="slide"].current.deck-warned {
+  outline-width: .8em;
+  outline-offset: -.8em;
+}
+
+body.presenting.overview section[data-deck="slide"].current:hover {
+  outline: calc(3px / var(--thumb)) solid rgba(127, 180, 255, .7);
+  outline-offset: calc(3px / var(--thumb));
+}
+
+body.presenting.overview section[data-deck="slide"].current.overview-selected {
+  outline: calc(4px / var(--thumb)) solid #7fb4ff;
+  outline-offset: calc(3px / var(--thumb));
+}
+
+/* The slide's number, drawn at the size of the page and not of the slide. */
+body.overview section[data-deck="slide"].current::before {
+  content: attr(data-n);
+  position: absolute;
+  top: .3rem;
+  right: .3rem;
+  z-index: 2;
+  zoom: calc(1 / var(--thumb));
+  padding: 0 .4em;
+  font: 700 12px/1.5 system-ui, sans-serif;
+  color: #fff;
+  background: rgba(0, 0, 0, .6);
+  border-radius: .3em;
+}
+
+body.overview .deck-notice {
+  display: none;
 }
 
 /* ---- slide layouts (trees/meta/layouts.tree) ----
