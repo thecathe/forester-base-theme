@@ -16,6 +16,10 @@
 // (trees/meta/fragments.tree) write elements that are numbered automatically. "Next" takes the next
 // step of the slide on show and, when there are none left, the next slide.
 //
+// A deck or section that holds content which is not a slide has data-deck-warn (written by deck.xsl:
+// that content is never presented). While presenting, a slide inside such a section says so in a
+// yellow banner and an outline, and the go-to list marks the section.
+//
 // Scrolling the wheel or trackpad does the same as the arrow keys, once for each flick.
 //
 // While presenting, a toolbar sits above the slide (below it, faint, over the slide's edge, when the
@@ -191,11 +195,17 @@ function init() {
   const errorBar = el('div', 'deck-error');
   errorBar.setAttribute('role', 'alert');
   errorBar.hidden = true;
-  document.body.append(bar, errorBar);
+  const noticeBar = el('div', 'deck-notice');
+  noticeBar.setAttribute('role', 'status');
+  noticeBar.hidden = true;
+  document.body.append(bar, errorBar, noticeBar);
   document.body.tabIndex = -1;
 
   const showError = (message) => { errorBar.textContent = message; errorBar.hidden = false; };
   const clearError = () => { errorBar.hidden = true; };
+  // What the build said about a section (see data-deck-warn above); '' when there is nothing.
+  const warningOf = (s) => s.dataset.deckWarn || '';
+  const marked = (s) => (warningOf(s) ? '⚠ ' : '');
 
   // ---- state ----
 
@@ -226,7 +236,7 @@ function init() {
     if (gotoMode === 'sections') {
       sectionList.forEach((s, k) => {
         const n = members.get(s).length;
-        option(String(k), `${indent(depthOf(s))}${titleOf(s)} (${n})`, n === 0);
+        option(String(k), `${indent(depthOf(s))}${marked(s)}${titleOf(s)} (${n})`, n === 0);
       });
     } else {
       let shownIn = null;
@@ -234,7 +244,7 @@ function init() {
         const s = innermost(i);
         if (s !== shownIn) {
           shownIn = s;
-          option('', `${indent(depthOf(s))}— ${titleOf(s)} —`, true);
+          option('', `${indent(depthOf(s))}— ${marked(s)}${titleOf(s)} —`, true);
         }
         option(String(i), `${indent(depthOf(s) + 1)}${i + 1}. ${titleOf(slide)}`, false);
       });
@@ -308,8 +318,17 @@ function init() {
 
   function clearShown() {
     if (current < 0) return;
-    slides[current].classList.remove('current');
+    slides[current].classList.remove('current', 'deck-warned');
     sectionsOf[current].forEach((s) => s.classList.remove('in-chain'));
+    noticeBar.hidden = true;
+  }
+
+  // The sections around the slide on show that hold content which is not being presented.
+  function showNotice(index) {
+    const said = sectionsOf[index].filter((s) => warningOf(s)).map((s) => `⚠ ${titleOf(s)}: ${warningOf(s)}`);
+    slides[index].classList.toggle('deck-warned', said.length > 0);
+    noticeBar.textContent = said.join('   ');
+    noticeBar.hidden = said.length === 0;
   }
 
   function show(index, newStep = 0, writeAddress = true) {
@@ -328,6 +347,7 @@ function init() {
     slide.scrollTop = 0;
     applyStep();
     updateBar();
+    showNotice(index);
     checkOverflow();
     if (writeAddress) history.replaceState(null, '', `#slide-${index + 1}`);
   }

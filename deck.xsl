@@ -14,13 +14,17 @@
     data-slug="..."       on a deck or section: its title as a link name (see deck-slugify)
     data-title="..."      on all of them: the plain-text title (no markup, no numbering)
     data-layout="..."     on a unit with \meta{layout}{...}: how a slide is laid out (see deck.css)
+    data-deck-warn="..."  on a deck or section that holds content which is not a unit, so is never
+                          presented: the reason, with a piece of what is lost (see deck-stray)
 
   A tree is marked only when every tree above it is a deck as well, so a deck nested inside
   a slide is ordinary content, and nothing in the backmatter (the context, backlinks and so
   on, which hold most of a deck page's sections) is ever marked.
 
-  Two build warnings, printed by xsltproc while the pages are rendered (exit code 0): a
-  section whose name is already taken, and a section that has no usable name.
+  Three build warnings, printed by xsltproc while the pages are rendered (exit code 0): a
+  section whose name is already taken, a section that has no usable name, and a deck or section
+  with content that will not be presented. The last is also written into the page as
+  data-deck-warn, which deck.css outlines in yellow and deck.js repeats while presenting.
 
   Kept in its own file, with one include in default.xsl and two call-templates in tree.xsl,
   so that the rest of the theme stays close to upstream's.
@@ -102,6 +106,29 @@
         </xsl:if>
         <xsl:if test="$base != '' and string-length($earlier) &gt; 0">
           <xsl:message>WARNING deck <xsl:value-of select="$page/f:frontmatter/f:uri" />: the section "<xsl:value-of select="$title" />" has the same name as an earlier section, so its link is #<xsl:value-of select="$slug" />, not #<xsl:value-of select="$base" />.</xsl:message>
+        </xsl:if>
+
+        <!-- Only units are presented, so anything else a deck or section holds (text, a paragraph,
+             a list) is lost on the stage and in print. Nothing is exempt yet; what is allowed
+             later (speaker notes) is to be taken out of $stray here, and nowhere else. -->
+        <xsl:variable name="stray" select="f:mainmatter/*[not(self::f:tree)] | f:mainmatter/text()[normalize-space(.) != '']" />
+        <xsl:if test="$stray">
+          <xsl:variable name="text" select="normalize-space(string($stray[1]))" />
+          <xsl:variable name="piece">
+            <xsl:choose>
+              <xsl:when test="string-length($text) &gt; 48">“<xsl:value-of select="substring($text, 1, 48)" />…”</xsl:when>
+              <xsl:when test="$text != ''">“<xsl:value-of select="$text" />”</xsl:when>
+              <xsl:when test="$stray[1][self::*]">(a <xsl:value-of select="local-name($stray[1])" /> element with no text)</xsl:when>
+            </xsl:choose>
+          </xsl:variable>
+          <xsl:variable name="reason">
+            <xsl:text>Content that is not a slide, so it is not presented: </xsl:text>
+            <xsl:value-of select="$piece" />
+            <xsl:if test="count($stray) &gt; 1"> and <xsl:value-of select="count($stray) - 1" /> more</xsl:if>
+            <xsl:text>.</xsl:text>
+          </xsl:variable>
+          <xsl:attribute name="data-deck-warn"><xsl:value-of select="$reason" /></xsl:attribute>
+          <xsl:message>WARNING deck <xsl:value-of select="$page/f:frontmatter/f:uri" />: <xsl:choose><xsl:when test="not(parent::f:mainmatter/parent::f:tree)">the deck</xsl:when><xsl:otherwise>the section</xsl:otherwise></xsl:choose> "<xsl:value-of select="$title" />" holds content that is not a slide, so it will not be presented (<xsl:value-of select="count($stray)" /> piece<xsl:if test="count($stray) != 1">s</xsl:if>, the first is <xsl:value-of select="$piece" />). Put it in a slide, or take it out.</xsl:message>
         </xsl:if>
       </xsl:if>
     </xsl:if>
