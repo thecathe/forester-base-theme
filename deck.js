@@ -193,6 +193,7 @@ function init() {
   //    a list never shows up empty before the step it holds (see hasContentBefore);
   //  - the picture of a \step (in \steps, or among the \pair of a \pairs) goes away when the next row
   //    arrives, whether that is a \pair or a \step, so a step's picture is only ever there until then.
+  //    The last row has no next one: it stays, unless a \clearstep ends the block (see below).
   const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li';
   const stepCache = new WeakMap();
 
@@ -250,6 +251,16 @@ function init() {
         } else if (f.el.matches('.step-text')) {
           f.passed = nextRow(f.el);
         }
+      }
+      // A \clearstep ends the last row of its block when the first fragment after the block arrives: the
+      // last row has no next row to do it, so its picture would stay to the end of the slide.
+      for (const mark of slide.querySelectorAll('.pairs > .clear-step, .steps > .clear-step')) {
+        const block = mark.parentElement;
+        const last = mark.previousElementSibling;
+        const after = list.find((f) => !block.contains(f.el) && (block.compareDocumentPosition(f.el) & Node.DOCUMENT_POSITION_FOLLOWING));
+        if (!after || !last?.matches('.step')) continue;
+        byEl.get(last.querySelector(':scope > .step-visual')).until = after.from;
+        byEl.get(last.querySelector(':scope > .step-text')).passed = after.from;
       }
       s = { list, count: Math.max(0, ...list.map((f) => Math.max(f.from, f.until ?? 0))) };
       stepCache.set(slide, s);
