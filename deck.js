@@ -1041,6 +1041,19 @@ function init() {
     e.preventDefault();
   });
 
+  // A click with the mouse on a control inside a slide (a \flip's checkbox, a \reveal's summary, a link) moves
+  // the keyboard focus to it, and then the keys are the control's (see the keydown handler: a checkbox takes
+  // them all, a summary and a link take space and enter), so the deck would stop answering until you clicked
+  // somewhere else. So the focus is let go once the click has done its work, as the toolbar's buttons do.
+  // A click that came from the keyboard (detail is 0: space on a control you tabbed to) is left alone.
+  document.addEventListener('click', (e) => {
+    if (!presenting || e.detail === 0) return;
+    setTimeout(() => {
+      const a = document.activeElement;
+      if (a instanceof Element && a.matches('input[type="checkbox"], summary, a, button') && a.closest('section[data-deck="slide"]')) a.blur();
+    });
+  });
+
   // Scrolling moves through the steps and slides, one move for each flick.
   //
   // A trackpad sends a stream of small events, and keeps sending decaying ones (momentum) for a second
