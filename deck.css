@@ -384,6 +384,19 @@ body.presenting .deck-notice {
   background: currentColor;
 }
 
+/* A \substep is a \step indented a little, a sub-point of the row above it: the same grid, so its picture takes the
+   same place. Only the text differs: indented, with a smaller bullet. */
+.substep > .step-text {
+  margin-left: 1.4em;
+}
+
+.substep > .step-text::before {
+  top: .5em;
+  top: calc(.5lh - .13em);
+  width: .26em;
+  height: .26em;
+}
+
 li :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text) {
   padding-left: 0;
 }
