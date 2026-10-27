@@ -1,5 +1,21 @@
 <?xml version="1.0"?>
-<!-- SPDX-License-Identifier: CC0-1.0 -->
+<!--
+  \clearstep (trees/meta/fragments.tree) has two forms, told apart here, at build time:
+
+    \clearstep{}        a mark. Last child of a \steps or a \pairs, straight after a \step: deck.js ends that row's picture when the
+                        first fragment after the block arrives. It has no row of its own (and deck.css draws it as nothing).
+    \clearstep{text}    a row of text and no picture, as a \step without its picture: it clears the right column as any next
+                        row does. Written here as a step of class "step step-blank", so the rest of the machinery sees a row.
+
+  A mark that is not where it belongs, or a \clearstep outside a \steps and a \pairs, would be ignored by deck.js, which would
+  leave a picture on the slide that the author meant to clear, so it is said loudly instead, as colour.xsl does for a colour CSS
+  would not know:
+
+    - a WARNING printed while the pages are rendered (exit code 0), naming the page and why;
+    - on the page, in place of the mark, a yellow label with the reason.
+
+  Kept in its own file, with one include in default.xsl, so the rest of the theme stays close to upstream.
+-->
 <!--
   A \clearstep (trees/meta/fragments.tree) is only meaningful as the last child of a \steps or a \pairs, straight after
   the \step whose picture it ends. Anywhere else deck.js would ignore it, which would leave a picture on the slide that
@@ -17,21 +33,31 @@
   xmlns:f="http://www.forester-notes.org"
   xmlns:html="http://www.w3.org/1999/xhtml">
 
+  <!-- A word of a class attribute, so that "step substep" is a step. -->
+  <xsl:template name="has-class">
+    <xsl:param name="class" />
+    <xsl:param name="word" />
+    <xsl:if test="contains(concat(' ', normalize-space($class), ' '), concat(' ', $word, ' '))">yes</xsl:if>
+  </xsl:template>
+
   <xsl:template match="html:div[@class = 'clear-step']">
+    <xsl:variable name="in-block" select="parent::html:div[@class = 'steps' or @class = 'pairs']" />
+    <xsl:variable name="empty" select="normalize-space(string(.)) = '' and not(*)" />
+    <xsl:variable name="before">
+      <xsl:call-template name="has-class">
+        <xsl:with-param name="class" select="preceding-sibling::*[1]/@class" />
+        <xsl:with-param name="word" select="'step'" />
+      </xsl:call-template>
+    </xsl:variable>
     <xsl:variable name="reason">
       <xsl:choose>
-        <xsl:when test="not(parent::html:div[@class = 'steps' or @class = 'pairs'])">it is not inside a \steps or a \pairs</xsl:when>
-        <xsl:when test="following-sibling::*">it is not the last child of its block</xsl:when>
-        <xsl:when test="not(preceding-sibling::*[1][self::html:div[@class = 'step']])">it does not follow a \step, so there is no picture for it to clear</xsl:when>
+        <xsl:when test="not($in-block)">it is not inside a \steps or a \pairs</xsl:when>
+        <xsl:when test="$empty and following-sibling::*">an empty one has to be the last child of its block</xsl:when>
+        <xsl:when test="$empty and $before != 'yes'">an empty one has to follow a \step, whose picture it clears</xsl:when>
       </xsl:choose>
     </xsl:variable>
     <xsl:choose>
-      <xsl:when test="$reason = ''">
-        <xsl:element namespace="http://www.w3.org/1999/xhtml" name="div">
-          <xsl:copy-of select="@*" />
-        </xsl:element>
-      </xsl:when>
-      <xsl:otherwise>
+      <xsl:when test="$reason != ''">
         <!-- not a .clear-step any more, so deck.js and deck.css leave it alone -->
         <xsl:element namespace="http://www.w3.org/1999/xhtml" name="div">
           <xsl:attribute name="class">clear-step-misplaced</xsl:attribute>
@@ -39,7 +65,23 @@
           <xsl:text>⚠ \clearstep: </xsl:text>
           <xsl:value-of select="$reason" />
         </xsl:element>
-        <xsl:message>WARNING clearstep <xsl:value-of select="ancestor::f:tree[last()]/f:frontmatter/f:uri" />: a \clearstep is ignored, because <xsl:value-of select="$reason" />. Put it last in the block, straight after the \step it should clear, or take it out.</xsl:message>
+        <xsl:message>WARNING clearstep <xsl:value-of select="ancestor::f:tree[last()]/f:frontmatter/f:uri" />: a \clearstep is ignored, because <xsl:value-of select="$reason" />. Put it where it belongs, or take it out.</xsl:message>
+      </xsl:when>
+      <xsl:when test="$empty">
+        <!-- the mark: no row of its own (deck.js, stepsOf) -->
+        <xsl:element namespace="http://www.w3.org/1999/xhtml" name="div">
+          <xsl:copy-of select="@*" />
+        </xsl:element>
+      </xsl:when>
+      <xsl:otherwise>
+        <!-- with text: a row of text and no picture, which clears the right column as any next row does -->
+        <xsl:element namespace="http://www.w3.org/1999/xhtml" name="div">
+          <xsl:attribute name="class">step step-blank</xsl:attribute>
+          <xsl:element namespace="http://www.w3.org/1999/xhtml" name="div">
+            <xsl:attribute name="class">step-text fragment</xsl:attribute>
+            <xsl:apply-templates select="node()" />
+          </xsl:element>
+        </xsl:element>
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>

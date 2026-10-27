@@ -214,9 +214,11 @@ function init() {
     const shown = press >= f.from && (f.until === null || press < f.until);
     el.classList.toggle('deck-hidden', !shown);
     if (f.passed !== undefined) {
-      const past = f.passed !== null && press >= f.passed;
-      el.classList.toggle('deck-past', past);
-      el.classList.toggle('deck-current', shown && !past);
+      // The chevron goes when the next row arrives, the dimming when the next row that is not a \substep does
+      // (so a row stays bright while its sub-steps are on).
+      const dimAt = f.dimmed === undefined ? f.passed : f.dimmed;
+      el.classList.toggle('deck-past', dimAt !== null && press >= dimAt);
+      el.classList.toggle('deck-current', shown && !(f.passed !== null && press >= f.passed));
     }
   }
 
@@ -239,8 +241,9 @@ function init() {
       });
       const byEl = new Map(list.map((f) => [f.el, f]));
       // The press at which the row after a \step's row arrives: its picture goes then, and its text is passed.
-      const nextRow = (el) => {
-        const row = el.parentElement.nextElementSibling;
+      const nextRow = (el, skipSubsteps = false) => {
+        let row = el.parentElement.nextElementSibling;
+        while (skipSubsteps && row?.matches('.substep')) row = row.nextElementSibling;
         const next = row && (row.matches('.fragment') ? row : row.querySelector('.fragment'));
         return next && byEl.has(next) ? byEl.get(next).from : null;
       };
@@ -250,6 +253,7 @@ function init() {
           if (at !== null) f.until = at;
         } else if (f.el.matches('.step-text')) {
           f.passed = nextRow(f.el);
+          if (!f.el.parentElement.matches('.substep')) f.dimmed = nextRow(f.el, true);
         }
       }
       // A \clearstep ends the last row of its block when the first fragment after the block arrives: the
@@ -259,8 +263,14 @@ function init() {
         const last = mark.previousElementSibling;
         const after = list.find((f) => !block.contains(f.el) && (block.compareDocumentPosition(f.el) & Node.DOCUMENT_POSITION_FOLLOWING));
         if (!after || !last?.matches('.step')) continue;
-        byEl.get(last.querySelector(':scope > .step-visual')).until = after.from;
+        const visual = last.querySelector(':scope > .step-visual');
+        if (visual) byEl.get(visual).until = after.from;
         byEl.get(last.querySelector(':scope > .step-text')).passed = after.from;
+        // the rows still waiting to be dimmed (the last, and any row whose sub-steps run to the end) go with it
+        for (const text of block.querySelectorAll(':scope > .step > .step-text')) {
+          const f = byEl.get(text);
+          if (f.dimmed === null || (f.dimmed === undefined && f.passed === null)) f.dimmed = after.from;
+        }
       }
       s = { list, count: Math.max(0, ...list.map((f) => Math.max(f.from, f.until ?? 0))) };
       stepCache.set(slide, s);
