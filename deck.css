@@ -451,15 +451,21 @@ li :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text)::before
   margin-top: 0;
 }
 
-:is(body.presenting, .deck-frame) :is(.pairs, .steps) > :last-child > :is(.pair-text, .step-text, .pair-visual) {
+:is(body.presenting, .deck-frame) :is(.pairs, .steps) > :nth-last-child(1 of :not(.clear-step)) > :is(.pair-text, .step-text, .pair-visual) {
   margin-bottom: 0;
+}
+
+/* A \clearstep is a mark for deck.js and not a row: it takes no place in the grid, and the last row is the last
+   one before it. */
+.clear-step {
+  display: none;
 }
 
 /* The overview shows every step, which for pictures that go when the next row arrives is the last. What is
    in a picture that is hidden stays hidden too: the overview makes every step visible, one by one, and a
    step inside a hidden picture (an item of a list in it) would otherwise show through. */
-body.presenting.overview :is(.pairs, .steps) > .step:not(:last-child) > .step-visual,
-body.presenting.overview :is(.pairs, .steps) > .step:not(:last-child) > .step-visual * {
+body.presenting.overview :is(.pairs, .steps) > .step:not(:nth-last-child(1 of :not(.clear-step))) > .step-visual,
+body.presenting.overview :is(.pairs, .steps) > .step:not(:nth-last-child(1 of :not(.clear-step))) > .step-visual * {
   visibility: hidden;
 }
 

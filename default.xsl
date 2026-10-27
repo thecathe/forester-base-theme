@@ -10,6 +10,7 @@
   <xsl:include href="tree.xsl" />
   <xsl:include href="deck.xsl" />
   <xsl:include href="colour.xsl" />
+  <xsl:include href="steps.xsl" />
 
   <!-- <xsl:template match="pause"></xsl:template> -->
 
