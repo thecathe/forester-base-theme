@@ -120,7 +120,7 @@ section[data-layout="divider"] .agenda:not(.agenda-all) {
   font-size: var(--agenda-size, .8em);
 }
 
-.agenda-all > .agenda-list > li {
+.agenda-all li:not(.agenda-long) {
   break-inside: avoid;
 }
 

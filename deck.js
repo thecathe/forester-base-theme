@@ -615,7 +615,11 @@ function init() {
       // smaller type for a very long one, so that it fits a slide.
       const n = list.querySelectorAll('li').length;
       block.style.setProperty('--agenda-cols', String(Math.min(5, Math.max(1, Math.ceil(n / 12)))));
-      block.style.setProperty('--agenda-size', n > 36 ? '.62em' : n > 24 ? '.72em' : '.86em');
+      block.style.setProperty('--agenda-size', n > 72 ? '.56em' : n > 36 ? '.62em' : n > 24 ? '.72em' : '.86em');
+      // A section with more entries than a column holds has to run on into the next one (the others stay whole).
+      for (const item of list.querySelectorAll(':scope > li')) {
+        if (item.querySelectorAll('li').length > 12) item.classList.add('agenda-long');
+      }
     } else {
       list = outline(root, { withSlides: false, deep: true });
     }
