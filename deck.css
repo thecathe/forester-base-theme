@@ -211,6 +211,16 @@ section[data-layout="divider"] .agenda:not(.agenda-all) {
 
 .deck-keys .keys-table {
   font-size: .58em;
+  line-height: 1.28;
+}
+
+/* Tighter rows and groups, so that the whole list still fits a slide. */
+.deck-keys .keys-row {
+  padding: .02em 0;
+}
+
+.deck-keys .keys-group {
+  margin-bottom: .35em;
 }
 
 /* The ? overlay: over everything, away on Esc, a click, or 3 seconds after the next key. */
