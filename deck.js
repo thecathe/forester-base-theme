@@ -41,6 +41,10 @@
 //
 // Printing the page (deck-print.js) gives a page for each state of a slide that has more than one.
 //
+// Speaker notes (deck-notes.js, \notes in trees/meta/notes.tree) have a switch of their own, the Notes button beside
+// Present and the n key. This tells that file which slide is on show, by a 'deck:show' event, and hears of the switch
+// by 'deck:notes': while presenting, the notes take a column at the right of the stage.
+//
 // Scrolling the wheel or trackpad does the same as the arrow keys, once for each flick.
 //
 // While presenting, a toolbar sits above the slide (below it, faint, over the slide's edge, when the
@@ -48,6 +52,7 @@
 
 import { setActions, setFragment, stepsOf } from './deck-steps.js';
 import { installPrinting } from './deck-print.js';
+import { installNotes } from './deck-notes.js';
 
 // The key bindings, as shown by the ? overlay and \keys: groups of [keys, what they do].
 const KEY_TABLE = [
@@ -67,6 +72,7 @@ const KEY_TABLE = [
   ['Views', [
     [['o'], 'Overview of every slide (there, arrows or h j k l move, Enter goes to one)'],
     [['f'], 'Full screen'],
+    [['n'], 'Show or hide the speaker notes (on the page too; the Notes button does the same)'],
     [['?'], 'This list'],
     [['Esc'], 'Closes this list or the overview; then leaves full screen; then stops presenting'],
   ]],
@@ -222,6 +228,7 @@ function init() {
     check: '<path d="M3 8.5l3.2 3.2L13 4.8"/>',
     hook: '<path d="M2.5 4h6a3.5 3.5 0 0 1 3.5 3.5V13"/><path d="M9.8 10.5L12 13l2.2-2.5"/>',
     grid: '<rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><rect x="9" y="9" width="4.5" height="4.5" rx="1"/>',
+    notes: '<rect x="2.5" y="2" width="11" height="12" rx="1.5"/><path d="M5.2 5.5h5.6M5.2 8h5.6M5.2 10.5h3.4"/>',
   };
   const icon = (name) => {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -238,6 +245,8 @@ function init() {
     b.addEventListener('click', () => { b.blur(); onclick(); });
     return b;
   };
+  // Speaker notes, if the deck has any (deck-notes.js): the switch and the column beside the stage.
+  const notes = installNotes({ root, slides, sectionsOf, members, titleOf, el, button, icon });
 
   const stopButton = button('deck-stop', '■ Stop presenting', 'Stop presenting and go back to the page (Esc)', () => exit());
   const prevButton = button('deck-prev', '‹', 'Previous (←)', () => prev());
@@ -279,7 +288,7 @@ function init() {
   const jump = el('span', 'deck-group deck-jump');
   jump.append(gotoLabel, gotoSelect, modes);
   const tools = el('span', 'deck-group deck-tools');
-  tools.append(warn, where, helpButton, overviewButton, fullButton);
+  tools.append(warn, where, ...(notes.has ? [notes.barButton] : []), helpButton, overviewButton, fullButton);
   // The progress bar: a segment for each part of the talk, as wide as it has slides, filled as far as
   // you have got. Pointing at one names it; clicking goes to its first slide.
   const progress = el('div', 'deck-progress');
@@ -446,7 +455,7 @@ function init() {
   function liftFooters() {
     let lift = 0;
     if (presenting && document.fullscreenElement) {
-      const w = Math.min(innerWidth, (innerHeight * 16) / 9);
+      const w = Math.min(innerWidth - (notes.has ? notes.stageWidth() : 0), (innerHeight * 16) / 9);
       const stageBottom = (innerHeight + (w * 9) / 16) / 2;
       lift = Math.max(0, stageBottom - (innerHeight - bar.offsetHeight)) / (w * 0.022);
     }
@@ -489,6 +498,7 @@ function init() {
     showNotice(index);
     markAgendas();
     checkOverflow();
+    document.dispatchEvent(new CustomEvent('deck:show', { detail: { index, step } }));
     if (writeAddress) history.replaceState(null, '', `#slide-${index + 1}`);
   }
 
@@ -826,9 +836,9 @@ function init() {
 
   const metadata = root.querySelector(':scope > details > summary > header .metadata ul');
   if (metadata) {
-    metadata.append(presentItem, resumeItem);
+    metadata.append(presentItem, ...(notes.has ? [notes.pageItem] : []), resumeItem);
   } else {
-    root.querySelector(':scope > details > summary > header')?.append(present, resumeItem);
+    root.querySelector(':scope > details > summary > header')?.append(present, ...(notes.has ? [notes.pageItem] : []), resumeItem);
   }
   for (const block of root.querySelectorAll('.agenda')) buildAgenda(block);
   // \pairs and \steps lay their rows out by row number and by how many there are (deck.css), which only
@@ -846,8 +856,17 @@ function init() {
   // ---- keys, addresses, resizing ----
 
   document.addEventListener('keydown', (e) => {
-    if (!presenting || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.composedPath().some((n) => n instanceof Element && n.matches('input, textarea, select, [contenteditable], ninja-keys'))) return;
+    const isN = e.key === 'n' || e.key === 'N';
+    if (!presenting) {
+      // On the page the one key is n, for the notes.
+      if (isN && notes.has && !e.repeat) {
+        e.preventDefault();
+        notes.toggle();
+      }
+      return;
+    }
     if (helpOpen()) {
       // Esc closes the list and is not passed on, so it does not also stop presenting. Any other key
       // does its usual work, and the first one that is not a bare modifier starts the countdown.
@@ -886,6 +905,7 @@ function init() {
     else if (e.key === 'Escape') exit();
     else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
     else if (e.key === 'o' || e.key === 'O') openOverview();
+    else if (isN) { if (notes.has && !e.repeat) notes.toggle(); }
     // The same moves on the home row: h and l are the slide before and after (from its first step),
     // j and k the next and previous step of this slide and no further, u and i the sections.
     else if (e.key === 'l' || e.key === 'L') { if (current < last) show(current + 1); }
@@ -930,6 +950,9 @@ function init() {
   const wheel = { last: -Infinity, lastDelta: 0, dir: 0, pushed: 0, spent: false, moved: -Infinity };
   document.addEventListener('wheel', (e) => {
     if (!presenting || overview || e.ctrlKey || e.metaKey) return; // ctrl and wheel is the browser's zoom; the overview scrolls
+    // Long notes scroll in their column; a wheel there is theirs.
+    const column = e.target instanceof Element && e.target.closest('.deck-notes-stage');
+    if (column && column.scrollHeight > column.clientHeight) return;
     e.preventDefault();
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
     const d = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;
@@ -970,6 +993,8 @@ function init() {
     // The address already names this slide, so it stays as it was written until a key moves on.
     enter(target.index, 0, false);
   }
+  // The notes take room from the stage (or give it back), so the footer's lift and what fits are worked out again.
+  document.addEventListener('deck:notes', () => { liftFooters(); checkOverflow(); });
   window.addEventListener('hashchange', followAddress);
   followAddress();
 
