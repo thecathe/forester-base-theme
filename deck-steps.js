@@ -19,6 +19,17 @@
 //  - the picture of a \step (in \steps, or among the \pair of a \pairs) goes away when the next row
 //    arrives, whether that is a \pair or a \step, so a step's picture is only ever there until then.
 //    The last row has no next one: it stays, unless a \clearstep ends the block (see below).
+//
+// A fragment can say when it arrives (\fragmenti, \reveali, \flipi: data-step-from), and that overrides the above:
+//  - a number is an exact press, and the ones written after it carry on from the largest press so far;
+//  - "with" is the press of the fragment written just before it;
+//  - "end" is after every other fragment of the slide (a press of its own, and in the order written when
+//    there are several), and so is everything inside an "end" fragment, and a "with" after one;
+//  - a fragment inside a \together (class "together") arrives with it, whatever else it says.
+// A fragment that says nothing (data-step-from="") is in the order written, as if it had not been given.
+//
+// Most fragments are shown or hidden. One that has data-step-does is acted on instead: "open" opens the
+// \reveal inside it, "turn" turns the \flip inside it, so what is on the stage follows the press.
 export const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li';
 const stepCache = new WeakMap();
 
@@ -37,6 +48,17 @@ function hasContentBefore(outer, inner) {
 // and for a printed page of a slide (showFrame).
 export function setFragment(f, el, press) {
   const shown = press >= f.from && (f.until === null || press < f.until);
+  if (f.does) {
+    // a \reveal that opens and a \flip that turns, rather than something that appears
+    if (f.does === 'open') {
+      const d = el.querySelector('details.reveal');
+      if (d) d.open = shown;
+    } else if (f.does === 'turn') {
+      const c = el.querySelector('.flip-checkbox');
+      if (c) c.checked = shown;
+    }
+    return;
+  }
   el.classList.toggle('deck-hidden', !shown);
   if (f.passed !== undefined) {
     // The chevron goes when the next row arrives, the dimming when the next row that is not a \substep does
@@ -47,23 +69,61 @@ export function setFragment(f, el, press) {
   }
 }
 
+// Puts the reveals and flips of `slide` that the steps drive at `press`: all closed and facing front at 0 (what the
+// ordinary page has), all open and turned at the last press (what the overview shows of every step).
+export function setActions(slide, press) {
+  for (const f of stepsOf(slide).list) {
+    if (f.does) setFragment(f, f.el, press);
+  }
+}
+
+// The press each fragment of a slide arrives on, in the order written (see the rules above). The ones that come
+// "at the end" are settled after all the others, so that they are after them whatever order they are written in.
+function arrivals(slide) {
+  const items = [...slide.querySelectorAll(FRAGMENTS)].map((el) => {
+    const word = (el.dataset.stepFrom ?? '').trim();
+    // a number, "with" or "end"; anything else (nothing, or a mistake the build has already reported) is in the order written
+    const at = /^\d+$/.test(word) ? Number(word) : word === 'with' || word === 'end' ? word : undefined;
+    return { el, at, up: null, together: el.parentElement.closest('.together'), late: false, from: 0 };
+  });
+  const itemOf = new Map(items.map((item) => [item.el, item]));
+  let before = null;
+  for (const item of items) {
+    const outer = item.el.parentElement.closest(FRAGMENTS);
+    item.up = outer ? itemOf.get(outer) : null;
+    item.late = item.at === 'end' || !!item.up?.late || (item.at === 'with' && !!before?.late);
+    before = item;
+  }
+
+  // Gives each of `group` a press, in the order written, after the press `start`; returns the last one given.
+  const settle = (group, start) => {
+    let counter = start;
+    let previous = null;
+    for (const item of group) {
+      const { el, at, up, together } = item;
+      if (together) item.from = itemOf.get(together).from;
+      else if (typeof at === 'number') item.from = at;
+      else if (at === 'with' && previous) item.from = previous.from;
+      else if (at === undefined && up && !hasContentBefore(up.el, el)) item.from = up.from;
+      else item.from = counter + 1;
+      counter = Math.max(counter, item.from);
+      previous = item;
+    }
+    return counter;
+  };
+  settle(items.filter((item) => item.late), settle(items.filter((item) => !item.late), 0));
+  return items;
+}
+
 export function stepsOf(slide) {
   let s = stepCache.get(slide);
   if (!s) {
-    let counter = 0;
-    const arrives = new Map();
-    const list = [...slide.querySelectorAll(FRAGMENTS)].map((el) => {
-      let from;
-      if (el.dataset.stepFrom !== undefined) {
-        from = Number(el.dataset.stepFrom) || 0;
-      } else {
-        const outer = el.parentElement.closest(FRAGMENTS);
-        from = outer && arrives.has(outer) && !hasContentBefore(outer, el) ? arrives.get(outer) : counter + 1;
-      }
-      arrives.set(el, from);
-      counter = Math.max(counter, from);
-      return { el, from, until: el.dataset.stepUntil === undefined ? null : Number(el.dataset.stepUntil) };
-    });
+    const list = arrivals(slide).map(({ el, from }) => ({
+      el,
+      from,
+      until: el.dataset.stepUntil === undefined ? null : Number(el.dataset.stepUntil),
+      does: el.dataset.stepDoes,
+    }));
     const byEl = new Map(list.map((f) => [f.el, f]));
     // The press at which the row after a \step's row arrives: its picture goes then, and its text is passed.
     const nextRow = (el, skipSubsteps = false) => {

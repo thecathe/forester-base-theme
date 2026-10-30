@@ -120,7 +120,7 @@ section[data-layout="divider"] .agenda:not(.agenda-all) {
   font-size: var(--agenda-size, .8em);
 }
 
-.agenda-all > .agenda-list > li {
+.agenda-all li:not(.agenda-long) {
   break-inside: avoid;
 }
 
@@ -603,6 +603,12 @@ body.presenting section[data-deck="slide"].current pre {
 
 body.presenting section[data-deck="slide"].current img {
   max-width: 100%;
+}
+
+/* \reveali and \flipi wrap an ordinary \reveal or \flip to say when it opens or turns (deck-steps.js); the wrapper
+   takes no room, so the reveal or flip lays out as if it stood there on its own. */
+.stepped {
+  display: contents;
 }
 
 /* A step that has not come yet keeps its place, so nothing jumps. */
