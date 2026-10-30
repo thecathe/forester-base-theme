@@ -11,7 +11,7 @@
 // slide of the section called name) and #name/2 (the second slide of that section). A link that
 // names a slide which is not there is shown as an error.
 //
-// Steps: an element with data-step-from="a" (and, if it goes away again, data-step-until="b") is
+// Steps (deck-steps.js): an element with data-step-from="a" (and, if it goes away again, data-step-until="b") is
 // shown from step a up to, but not including, step b. \fragment, \incremental, \qa, \pairs and \steps
 // (trees/meta/fragments.tree) write elements that are numbered automatically. "Next" takes the next
 // step of the slide on show and, when there are none left, the next slide.
@@ -39,10 +39,15 @@
 // It reuses the stage's own look: every slide is given the class of the one on show, and the
 // stylesheet scales them down.
 //
+// Printing the page (deck-print.js) gives a page for each state of a slide that has more than one.
+//
 // Scrolling the wheel or trackpad does the same as the arrow keys, once for each flick.
 //
 // While presenting, a toolbar sits above the slide (below it, faint, over the slide's edge, when the
 // window is full screen); the page itself comes back when presenting stops.
+
+import { setFragment, stepsOf } from './deck-steps.js';
+import { installPrinting } from './deck-print.js';
 
 // The key bindings, as shown by the ? overlay and \keys: groups of [keys, what they do].
 const KEY_TABLE = [
@@ -183,99 +188,6 @@ function init() {
       return { error: `The section "${m[1]}" has ${inside.length} slide${inside.length === 1 ? '' : 's'}, so there is no slide ${n} in it.` };
     }
     return { index: inside[n - 1] };
-  }
-
-  // The steps of a slide, worked out once. A fragment (see trees/meta/fragments.tree) is anything
-  // with data-step-from, a .fragment, or an item of a list inside an .incremental. The ones that
-  // do not say which step they arrive on are numbered in the order they are written, after
-  // whichever step came before, with two exceptions:
-  //  - a fragment that is the first thing inside another fragment arrives with it, so that an item of
-  //    a list never shows up empty before the step it holds (see hasContentBefore);
-  //  - the picture of a \step (in \steps, or among the \pair of a \pairs) goes away when the next row
-  //    arrives, whether that is a \pair or a \step, so a step's picture is only ever there until then.
-  //    The last row has no next one: it stays, unless a \clearstep ends the block (see below).
-  const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li';
-  const stepCache = new WeakMap();
-
-  // Whether anything is shown inside `outer` before `inner`: text, or a picture or a control. (What is
-  // before may well be a fragment too, still waiting: the question is whether `outer` is empty
-  // without `inner`, which it is not if an earlier fragment is part of it.)
-  function hasContentBefore(outer, inner) {
-    const range = document.createRange();
-    range.setStart(outer, 0);
-    range.setEndBefore(inner);
-    return range.toString().trim() !== '' || range.cloneContents().querySelector('img, svg, canvas, video, iframe, object, input') !== null;
-  }
-
-  // A fragment as it is at a press: shown or not and, for the text of a \step, whether it is the one we are
-  // on (deck-current: a chevron for its bullet) or one we have gone past (deck-past: dimmed). Used for the stage
-  // and for a printed page of a slide (showFrame).
-  function setFragment(f, el, press) {
-    const shown = press >= f.from && (f.until === null || press < f.until);
-    el.classList.toggle('deck-hidden', !shown);
-    if (f.passed !== undefined) {
-      // The chevron goes when the next row arrives, the dimming when the next row that is not a \substep does
-      // (so a row stays bright while its sub-steps are on).
-      const dimAt = f.dimmed === undefined ? f.passed : f.dimmed;
-      el.classList.toggle('deck-past', dimAt !== null && press >= dimAt);
-      el.classList.toggle('deck-current', shown && !(f.passed !== null && press >= f.passed));
-    }
-  }
-
-  function stepsOf(slide) {
-    let s = stepCache.get(slide);
-    if (!s) {
-      let counter = 0;
-      const arrives = new Map();
-      const list = [...slide.querySelectorAll(FRAGMENTS)].map((el) => {
-        let from;
-        if (el.dataset.stepFrom !== undefined) {
-          from = Number(el.dataset.stepFrom) || 0;
-        } else {
-          const outer = el.parentElement.closest(FRAGMENTS);
-          from = outer && arrives.has(outer) && !hasContentBefore(outer, el) ? arrives.get(outer) : counter + 1;
-        }
-        arrives.set(el, from);
-        counter = Math.max(counter, from);
-        return { el, from, until: el.dataset.stepUntil === undefined ? null : Number(el.dataset.stepUntil) };
-      });
-      const byEl = new Map(list.map((f) => [f.el, f]));
-      // The press at which the row after a \step's row arrives: its picture goes then, and its text is passed.
-      const nextRow = (el, skipSubsteps = false) => {
-        let row = el.parentElement.nextElementSibling;
-        while (skipSubsteps && row?.matches('.substep')) row = row.nextElementSibling;
-        const next = row && (row.matches('.fragment') ? row : row.querySelector('.fragment'));
-        return next && byEl.has(next) ? byEl.get(next).from : null;
-      };
-      for (const f of list) {
-        if (f.el.matches('.step-visual')) {
-          const at = nextRow(f.el);
-          if (at !== null) f.until = at;
-        } else if (f.el.matches('.step-text')) {
-          f.passed = nextRow(f.el);
-          if (!f.el.parentElement.matches('.substep')) f.dimmed = nextRow(f.el, true);
-        }
-      }
-      // A \clearstep ends the last row of its block when the first fragment after the block arrives: the
-      // last row has no next row to do it, so its picture would stay to the end of the slide.
-      for (const mark of slide.querySelectorAll('.pairs > .clear-step, .steps > .clear-step')) {
-        const block = mark.parentElement;
-        const last = mark.previousElementSibling;
-        const after = list.find((f) => !block.contains(f.el) && (block.compareDocumentPosition(f.el) & Node.DOCUMENT_POSITION_FOLLOWING));
-        if (!after || !last?.matches('.step')) continue;
-        const visual = last.querySelector(':scope > .step-visual');
-        if (visual) byEl.get(visual).until = after.from;
-        byEl.get(last.querySelector(':scope > .step-text')).passed = after.from;
-        // the rows still waiting to be dimmed (the last, and any row whose sub-steps run to the end) go with it
-        for (const text of block.querySelectorAll(':scope > .step > .step-text')) {
-          const f = byEl.get(text);
-          if (f.dimmed === null || (f.dimmed === undefined && f.passed === null)) f.dimmed = after.from;
-        }
-      }
-      s = { list, count: Math.max(0, ...list.map((f) => Math.max(f.from, f.until ?? 0))) };
-      stepCache.set(slide, s);
-    }
-    return s;
   }
 
   // ---- the parts of the page this adds ----
@@ -923,67 +835,7 @@ function init() {
   buildFooters();
   for (const block of root.querySelectorAll('.deck-keys')) block.replaceChildren(keysTable());
   fillGoto();
-
-  // ---- printing ----
-
-  // Printing the page gives a page for each slide with everything on it shown. A slide with something that
-  // is only there for a while (the picture of a \step) or only when asked for (a \reveal, a \flip) would
-  // lose it that way, so it prints as several pages, one for each state: for each step picture, the slide
-  // as it is just after that picture arrives; and, if it has a reveal or a flip, a last page with them all
-  // open, the others having them all closed. A slide with none of these prints as one page, as before.
-  // The extra pages are copies of the slide, made for the printing and taken away after it.
-  function printFrames(slide) {
-    const { list, count } = stepsOf(slide);
-    const presses = [...new Set(list.filter((f) => f.el.matches('.step-visual')).map((f) => f.from))].sort((a, b) => a - b);
-    if (presses.length === 0 || presses[presses.length - 1] < count) presses.push(count);
-    const frames = presses.map((press) => ({ press, open: false }));
-    if (slide.querySelector('details.reveal, .flip-checkbox')) frames.push({ press: count, open: true });
-    return frames;
-  }
-
-  // Sets a slide (or a copy of one, whose steps are in the same order) to a page's state.
-  function showFrame(el, frame, list) {
-    const els = el.querySelectorAll(FRAGMENTS);
-    list.forEach((f, i) => setFragment(f, els[i], frame.press));
-    for (const d of el.querySelectorAll('details.reveal')) d.open = frame.open;
-    for (const c of el.querySelectorAll('.flip-checkbox')) c.checked = frame.open;
-    el.classList.add('deck-frame');
-  }
-
-  const STEP_CLASSES = ['deck-hidden', 'deck-past', 'deck-current'];
-  let afterPrint = [];
-  window.addEventListener('beforeprint', () => {
-    if (presenting) return; // the stage prints the slide on show, as it is
-    for (const slide of slides) {
-      const frames = printFrames(slide);
-      if (frames.length < 2) continue;
-      const { list } = stepsOf(slide);
-      const saved = {
-        classes: list.map((f) => STEP_CLASSES.map((c) => f.el.classList.contains(c))),
-        open: [...slide.querySelectorAll('details.reveal')].map((d) => d.open),
-        checked: [...slide.querySelectorAll('.flip-checkbox')].map((c) => c.checked),
-      };
-      const copies = frames.slice(1).map(() => slide.cloneNode(true));
-      showFrame(slide, frames[0], list);
-      copies.forEach((copy, i) => {
-        for (const e of copy.querySelectorAll('[id]')) e.removeAttribute('id');
-        copy.removeAttribute('id');
-        showFrame(copy, frames[i + 1], list);
-      });
-      slide.after(...copies);
-      afterPrint.push(() => {
-        for (const copy of copies) copy.remove();
-        slide.classList.remove('deck-frame');
-        list.forEach((f, i) => STEP_CLASSES.forEach((c, j) => f.el.classList.toggle(c, saved.classes[i][j])));
-        slide.querySelectorAll('details.reveal').forEach((d, i) => { d.open = saved.open[i]; });
-        slide.querySelectorAll('.flip-checkbox').forEach((c, i) => { c.checked = saved.checked[i]; });
-      });
-    }
-  });
-  window.addEventListener('afterprint', () => {
-    for (const undo of afterPrint) undo();
-    afterPrint = [];
-  });
+  installPrinting(slides, () => presenting);
 
   // ---- keys, addresses, resizing ----
 
