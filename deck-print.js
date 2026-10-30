@@ -6,27 +6,41 @@
 
 import { FRAGMENTS, setFragment, stepsOf } from './deck-steps.js';
 
-// Printing the page gives a page for each slide with everything on it shown. A slide with something that
-// is only there for a while (the picture of a \step) or only when asked for (a \reveal, a \flip) would
-// lose it that way, so it prints as several pages, one for each state: for each step picture, the slide
-// as it is just after that picture arrives; and, if it has a reveal or a flip, a last page with them all
-// open, the others having them all closed. A slide with none of these prints as one page, as before.
+// Printing the page gives a page for each slide with everything on it shown. What is only there for a while
+// (the picture of a \step) or only on the other side of a \flip would be lost that way, so a slide with such things
+// prints as several pages, one for each state:
+//  - for each step picture, the slide as it is just after that picture arrives;
+//  - for each flip that turns on a press (\flipi), the slide just before and just after it turns;
+//  - for the flips that turn on a click, a last page with them all turned over, the others showing their fronts.
+// A \reveal is always printed open: what it hides is what the page is for, and it makes no page of its own. A slide with
+// no step picture and no flip is one page, as before.
 // The extra pages are copies of the slide, made for the printing and taken away after it.
 function printFrames(slide) {
   const { list, count } = stepsOf(slide);
-  const presses = [...new Set(list.filter((f) => f.el.matches('.step-visual')).map((f) => f.from))].sort((a, b) => a - b);
-  if (presses.length === 0 || presses[presses.length - 1] < count) presses.push(count);
-  const frames = presses.map((press) => ({ press, open: false }));
-  if (slide.querySelector('details.reveal, .flip-checkbox')) frames.push({ press: count, open: true });
+  const presses = new Set();
+  for (const f of list) {
+    if (f.el.matches('.step-visual')) presses.add(f.from);
+    if (f.does === 'turn') {
+      presses.add(f.from);
+      presses.add(Math.max(0, f.from - 1));
+    }
+  }
+  const ordered = [...presses].sort((a, b) => a - b);
+  if (ordered.length === 0 || ordered[ordered.length - 1] < count) ordered.push(count);
+  const frames = ordered.map((press) => ({ press, turned: false }));
+  if ([...slide.querySelectorAll('.flip-checkbox')].some((c) => !c.closest('[data-step-does]'))) frames.push({ press: count, turned: true });
   return frames;
 }
 
-// Sets a slide (or a copy of one, whose steps are in the same order) to a page's state.
+// Sets a slide (or a copy of one, whose steps are in the same order) to a page's state. The flips that the
+// steps turn are left as the press has them.
 function showFrame(el, frame, list) {
   const els = el.querySelectorAll(FRAGMENTS);
   list.forEach((f, i) => setFragment(f, els[i], frame.press));
-  for (const d of el.querySelectorAll('details.reveal')) d.open = frame.open;
-  for (const c of el.querySelectorAll('.flip-checkbox')) c.checked = frame.open;
+  for (const d of el.querySelectorAll('details.reveal')) d.open = true;
+  for (const c of el.querySelectorAll('.flip-checkbox')) {
+    if (!c.closest('[data-step-does]')) c.checked = frame.turned;
+  }
   el.classList.add('deck-frame');
 }
 
@@ -39,7 +53,16 @@ export function installPrinting(slides, isPresenting) {
     if (isPresenting()) return; // the stage prints the slide on show, as it is
     for (const slide of slides) {
       const frames = printFrames(slide);
-      if (frames.length < 2) continue;
+      if (frames.length < 2) {
+        // one page; a reveal on it is printed open
+        const reveals = [...slide.querySelectorAll('details.reveal')];
+        if (reveals.length > 0) {
+          const was = reveals.map((d) => d.open);
+          reveals.forEach((d) => { d.open = true; });
+          afterPrint.push(() => reveals.forEach((d, i) => { d.open = was[i]; }));
+        }
+        continue;
+      }
       const { list } = stepsOf(slide);
       const saved = {
         classes: list.map((f) => STEP_CLASSES.map((c) => f.el.classList.contains(c))),
