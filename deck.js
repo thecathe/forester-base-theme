@@ -46,7 +46,7 @@
 // While presenting, a toolbar sits above the slide (below it, faint, over the slide's edge, when the
 // window is full screen); the page itself comes back when presenting stops.
 
-import { setFragment, stepsOf } from './deck-steps.js';
+import { setActions, setFragment, stepsOf } from './deck-steps.js';
 import { installPrinting } from './deck-print.js';
 
 // The key bindings, as shown by the ? overlay and \keys: groups of [keys, what they do].
@@ -536,6 +536,7 @@ function init() {
       if (d) d.open = true;
     }
     slides.forEach((slide, i) => {
+      setActions(slide, stepsOf(slide).count);
       slide.classList.add('current');
       slide.classList.toggle('deck-warned', sectionsOf[i].some((s) => warningOf(s)));
       slide.dataset.n = String(i + 1);
@@ -739,6 +740,7 @@ function init() {
     updateResume();
     document.body.classList.remove('presenting');
     clearShown();
+    for (const slide of slides) setActions(slide, 0);
     document.body.style.removeProperty('--bar-h');
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     history.replaceState(null, '', location.pathname + location.search);

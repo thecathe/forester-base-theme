@@ -26,6 +26,9 @@
 
   A \clearstep that is where it belongs is copied as it stands (and drawn as nothing, by deck.css).
 
+  The same file checks when a fragment says it arrives (\fragmenti, \reveali, \flipi, \last: data-step-from). It has to be a
+  number, "with", "end" or nothing; anything else is said loudly, as above, and the fragment is then in the order written.
+
   Kept in its own file, with one include in default.xsl, so the rest of the theme stays close to upstream.
 -->
 <xsl:stylesheet version="1.0"
@@ -38,6 +41,32 @@
     <xsl:param name="class" />
     <xsl:param name="word" />
     <xsl:if test="contains(concat(' ', normalize-space($class), ' '), concat(' ', $word, ' '))">yes</xsl:if>
+  </xsl:template>
+
+  <!-- When a fragment arrives: a whole number, "with", "end", or nothing. Anything else is a mistake in the source, which
+       deck.js would take for "nothing": the label and the warning say so. The element is copied as core.xsl copies one. -->
+  <xsl:template match="html:*[@data-step-from]" priority="2">
+    <xsl:variable name="when" select="normalize-space(@data-step-from)" />
+    <xsl:variable name="reason">
+      <xsl:choose>
+        <xsl:when test="$when = '' or $when = 'with' or $when = 'end'" />
+        <xsl:when test="translate($when, '0123456789', '') = ''" />
+        <xsl:otherwise>
+          <xsl:text>“</xsl:text><xsl:value-of select="$when" /><xsl:text>” is not a press number, “with” or “end”</xsl:text>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:variable>
+    <xsl:element namespace="http://www.w3.org/1999/xhtml" name="{local-name()}">
+      <xsl:apply-templates select="@*[$reason = '' or name() != 'data-step-from'] | node()" />
+    </xsl:element>
+    <xsl:if test="$reason != ''">
+      <xsl:element namespace="http://www.w3.org/1999/xhtml" name="span">
+        <xsl:attribute name="style">margin: 0 .3em; padding: 0 .35em; font: 600 .6em/1.4 system-ui, sans-serif; color: #3b2c00; background: #f2b705; border-radius: .2em; opacity: 1</xsl:attribute>
+        <xsl:text>⚠ when: </xsl:text>
+        <xsl:value-of select="$reason" />
+      </xsl:element>
+      <xsl:message>WARNING step <xsl:value-of select="ancestor::f:tree[last()]/f:frontmatter/f:uri" />: <xsl:value-of select="$reason" />, so it arrives in the order written. Give a number, with, end, or nothing.</xsl:message>
+    </xsl:if>
   </xsl:template>
 
   <xsl:template match="html:div[@class = 'clear-step']">
