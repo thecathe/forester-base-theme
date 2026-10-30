@@ -117,9 +117,9 @@
         <!-- Only units are presented, so anything else a deck or section holds (text, a paragraph,
              a list) is lost on the stage and in print. What is allowed, because it is not meant to be
              shown as it stands, is taken out of $stray here, and nowhere else: so far the footer
-             definition (\footer, trees/meta/footer.tree), which deck.js draws on each slide; speaker
-             notes will join it. -->
-        <xsl:variable name="stray" select="f:mainmatter/*[not(self::f:tree)][not(self::html:div and @class = 'deck-footer-def')] | f:mainmatter/text()[normalize-space(.) != '']" />
+             definition (\footer, trees/meta/footer.tree), which deck.js draws on each slide, and speaker
+             notes (\notes, trees/meta/notes.tree), which deck-notes.js shows on request. -->
+        <xsl:variable name="stray" select="f:mainmatter/*[not(self::f:tree)][not(self::html:div and @class = 'deck-footer-def')][not(self::html:aside and @class = 'deck-notes')] | f:mainmatter/text()[normalize-space(.) != '']" />
         <xsl:if test="$stray">
           <xsl:variable name="text" select="normalize-space(string($stray[1]))" />
           <xsl:variable name="piece">

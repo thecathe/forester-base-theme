@@ -46,12 +46,19 @@ function showFrame(el, frame, list) {
 
 const STEP_CLASSES = ['deck-hidden', 'deck-past', 'deck-current'];
 
-// Takes over printing for the page: `slides` are the deck's slides, `isPresenting()` says whether it is on the stage.
-export function installPrinting(slides, isPresenting) {
+// Takes over printing for the page: `slides` are the deck's slides, `isPresenting()` says whether it is on the stage, and
+// `pageAfter(i)`, if there is one, gives a page to print after slide i (the speaker notes, deck-notes.js) or null.
+export function installPrinting(slides, isPresenting, pageAfter = () => null) {
   let afterPrint = [];
   window.addEventListener('beforeprint', () => {
     if (isPresenting()) return; // the stage prints the slide on show, as it is
-    for (const slide of slides) {
+    slides.forEach((slide, n) => {
+      // Put in first, so that the copies of the slide, which go in straight after it, come before it.
+      const extra = pageAfter(n);
+      if (extra) {
+        slide.after(extra);
+        afterPrint.push(() => extra.remove());
+      }
       const frames = printFrames(slide);
       if (frames.length < 2) {
         // one page; a reveal on it is printed open
@@ -61,7 +68,7 @@ export function installPrinting(slides, isPresenting) {
           reveals.forEach((d) => { d.open = true; });
           afterPrint.push(() => reveals.forEach((d, i) => { d.open = was[i]; }));
         }
-        continue;
+        return;
       }
       const { list } = stepsOf(slide);
       const saved = {
@@ -84,7 +91,7 @@ export function installPrinting(slides, isPresenting) {
         slide.querySelectorAll('details.reveal').forEach((d, i) => { d.open = saved.open[i]; });
         slide.querySelectorAll('.flip-checkbox').forEach((c, i) => { c.checked = saved.checked[i]; });
       });
-    }
+    });
   });
   window.addEventListener('afterprint', () => {
     for (const undo of afterPrint) undo();

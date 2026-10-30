@@ -211,6 +211,16 @@ section[data-layout="divider"] .agenda:not(.agenda-all) {
 
 .deck-keys .keys-table {
   font-size: .58em;
+  line-height: 1.28;
+}
+
+/* Tighter rows and groups, so that the whole list still fits a slide. */
+.deck-keys .keys-row {
+  padding: .02em 0;
+}
+
+.deck-keys .keys-group {
+  margin-bottom: .35em;
 }
 
 /* The ? overlay: over everything, away on Esc, a click, or 3 seconds after the next key. */
@@ -546,10 +556,10 @@ body.presenting section[data-deck].in-chain > details > :not(section[data-deck])
 
 /* The stage: 16:9, as large as fits, centred; the text scales with it. */
 body.presenting section[data-deck="slide"].current {
-  --stage-w: min(100vw, calc((100vh - var(--bar-h, 0px)) * 16 / 9));
+  --stage-w: min(calc(100vw - var(--notes-w, 0px)), calc((100vh - var(--bar-h, 0px)) * 16 / 9));
   position: fixed;
   top: var(--bar-h, 0px);
-  right: 0;
+  right: var(--notes-w, 0px);
   bottom: 0;
   left: 0;
   z-index: 10;
@@ -1020,6 +1030,152 @@ body.presenting section[data-layout="bare"].current img {
   margin: 0 auto;
 }
 
+/* ---- speaker notes (trees/meta/notes.tree, deck-notes.js) ----
+   deck-notes.js gathers the notes of a slide, a section or the deck into one .deck-notes-panel. Nothing shows until
+   the switch is on (body.deck-notes-on: the Notes button, or n). On the page the panel of a slide stands at its right,
+   in a window wide enough, and under it otherwise; the panel of a section or of the deck stands under its heading.
+   While presenting, the page's panels are not on the stage; .deck-notes-stage is a column at the right of it with the
+   notes of the slide on show, and --notes-w is the room it takes (the stage rules above subtract it). */
+
+.deck-notes-panel,
+.deck-notes-stage {
+  display: none;
+}
+
+/* The page's own panels are for the screen: a printed page gets a page of notes instead (.deck-notes-page, below). */
+@media screen {
+  body.deck-notes-on:not(.presenting) .deck-notes-panel {
+    display: block;
+    box-sizing: border-box;
+    margin: .6em 0 1em;
+    padding: .45em .8em .6em;
+    font-size: .92em;
+    line-height: 1.4;
+    background: rgba(242, 183, 5, .1);
+    border-left: 3px solid #d9a400;
+    border-radius: var(--radius);
+  }
+
+  /* The notes take the table of contents' place. */
+  body.deck-notes-on:not(.presenting) #grid-wrapper > nav {
+    display: none;
+  }
+}
+
+.deck-notes-label {
+  font: 600 .72rem/1.6 system-ui, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  opacity: .65;
+}
+
+.deck-notes-panel .deck-notes + .deck-notes,
+.deck-notes-stage .deck-notes + .deck-notes {
+  margin-top: .7em;
+  padding-top: .7em;
+  border-top: 1px dotted currentColor;
+}
+
+.deck-notes-panel > .deck-notes > :first-child,
+.deck-notes-stage .deck-notes > :first-child {
+  margin-top: 0;
+}
+
+.deck-notes-panel > .deck-notes > :last-child,
+.deck-notes-stage .deck-notes > :last-child {
+  margin-bottom: 0;
+}
+
+@media screen and (min-width: 1280px) {
+  body.deck-notes-on:not(.presenting) {
+    --notes-page-w: 40ex;
+    --notes-page-gap: 2ex;
+  }
+
+  body.deck-notes-on:not(.presenting) #grid-wrapper {
+    grid-template-columns: calc(90ex + var(--notes-page-w) + var(--notes-page-gap));
+  }
+
+  /* (an article with an auto margin is as wide as its content, which is less than this, so it says so) */
+  body.deck-notes-on:not(.presenting) #grid-wrapper > article {
+    width: 100%;
+    max-width: calc(90ex + var(--notes-page-w) + var(--notes-page-gap));
+  }
+
+  /* A slide is a grid of two columns, itself and its notes, so the slide keeps the width it has without notes. */
+  body.deck-notes-on:not(.presenting) section[data-deck="slide"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--notes-page-w);
+    column-gap: var(--notes-page-gap);
+    align-items: start;
+  }
+
+  body.deck-notes-on:not(.presenting) section[data-deck="slide"] > .deck-notes-panel {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+}
+
+/* While presenting. The column is dark like the room around the stage; the notes are the cloned ones, so their own
+   markup (paragraphs, lists, maths) is what is drawn, in the light colour. */
+body.presenting.deck-notes-on {
+  --notes-w: clamp(15rem, 28vw, 34rem);
+}
+
+body.presenting.overview {
+  --notes-w: 0px;
+}
+
+body.presenting.deck-notes-on:not(.overview) .deck-notes-stage {
+  display: block;
+  position: fixed;
+  top: var(--bar-h, 0px);
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  width: var(--notes-w);
+  padding: .9rem 1.1rem 1.2rem;
+  overflow-y: auto;
+  font: clamp(15px, 1.25vw, 22px) / 1.4 system-ui, sans-serif;
+  color: #e9edf3;
+  background: #232a34;
+  border-left: 3px solid #d9a400;
+}
+
+body.presenting.deck-fullscreen .deck-notes-stage {
+  padding-bottom: 3.4rem; /* the faint strip lies along the bottom edge */
+}
+
+.deck-notes-stage a {
+  color: #8fc1ff;
+}
+
+.deck-notes-stage .deck-notes-group + .deck-notes-group {
+  margin-top: 1.1em;
+  padding-top: .8em;
+  border-top: 1px solid rgba(255, 255, 255, .25);
+}
+
+.deck-notes-stage .deck-notes-label {
+  margin-bottom: .3em;
+}
+
+.deck-notes-none {
+  opacity: .5;
+  font-style: italic;
+}
+
+.deck-bar .deck-notes-button[aria-pressed="true"] {
+  background: rgba(255, 255, 255, .3);
+}
+
+.deck-present[aria-pressed="true"] {
+  background: rgba(217, 164, 0, .22);
+  border-color: #b88a00;
+}
+
 /* ---- print: one slide a page ---- */
 
 @media print {
@@ -1043,7 +1199,8 @@ body.presenting section[data-layout="bare"].current img {
   .deck-bar,
   .deck-error,
   .deck-notice,
-  .deck-help {
+  .deck-help,
+  .deck-notes-stage {
     display: none !important;
   }
 
@@ -1074,9 +1231,46 @@ body.presenting section[data-layout="bare"].current img {
     outline: none !important;
   }
 
-  section[data-deck="deck"] > details > :not(section[data-deck]),
-  section[data-deck="section"] > details > :not(section[data-deck]) {
+  section[data-deck="deck"] > details > :not(section[data-deck]):not(.deck-notes-page),
+  section[data-deck="section"] > details > :not(section[data-deck]):not(.deck-notes-page) {
     display: none;
+  }
+
+  /* With the notes on, a page of notes follows a slide's pages (deck-notes.js, printPage): the same size as a slide, and
+     longer notes run on to another page instead of being cut off. */
+  .deck-notes-page {
+    box-sizing: border-box;
+    width: 1280px;
+    min-height: 720px;
+    padding: 48px 80px;
+    font: 22px/1.45 system-ui, sans-serif;
+    color: #000;
+    break-after: page;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .deck-notes-page-title {
+    margin: 0 0 .7em;
+    padding-bottom: .3em;
+    font-size: 1.25em;
+    font-weight: 700;
+    border-bottom: 2px solid #d9a400;
+  }
+
+  .deck-notes-page .deck-notes-label {
+    margin-bottom: .2em;
+    font-size: 15px;
+  }
+
+  .deck-notes-page .deck-notes-group + .deck-notes-group {
+    margin-top: 1em;
+  }
+
+  .deck-notes-page .deck-notes + .deck-notes {
+    margin-top: .7em;
+    padding-top: .7em;
+    border-top: 1px dotted #888;
   }
 
   section[data-deck="slide"] {
