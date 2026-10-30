@@ -1032,16 +1032,24 @@ body.presenting section[data-layout="bare"].current img {
   display: none;
 }
 
-body.deck-notes-on:not(.presenting) .deck-notes-panel {
-  display: block;
-  box-sizing: border-box;
-  margin: .6em 0 1em;
-  padding: .45em .8em .6em;
-  font-size: .92em;
-  line-height: 1.4;
-  background: rgba(242, 183, 5, .1);
-  border-left: 3px solid #d9a400;
-  border-radius: var(--radius);
+/* The page's own panels are for the screen: a printed page gets a page of notes instead (.deck-notes-page, below). */
+@media screen {
+  body.deck-notes-on:not(.presenting) .deck-notes-panel {
+    display: block;
+    box-sizing: border-box;
+    margin: .6em 0 1em;
+    padding: .45em .8em .6em;
+    font-size: .92em;
+    line-height: 1.4;
+    background: rgba(242, 183, 5, .1);
+    border-left: 3px solid #d9a400;
+    border-radius: var(--radius);
+  }
+
+  /* The notes take the table of contents' place. */
+  body.deck-notes-on:not(.presenting) #grid-wrapper > nav {
+    display: none;
+  }
 }
 
 .deck-notes-label {
@@ -1066,11 +1074,6 @@ body.deck-notes-on:not(.presenting) .deck-notes-panel {
 .deck-notes-panel > .deck-notes > :last-child,
 .deck-notes-stage .deck-notes > :last-child {
   margin-bottom: 0;
-}
-
-/* The notes take the table of contents' place. */
-body.deck-notes-on:not(.presenting) #grid-wrapper > nav {
-  display: none;
 }
 
 @media screen and (min-width: 1280px) {
@@ -1186,7 +1189,8 @@ body.presenting.deck-fullscreen .deck-notes-stage {
   .deck-bar,
   .deck-error,
   .deck-notice,
-  .deck-help {
+  .deck-help,
+  .deck-notes-stage {
     display: none !important;
   }
 
@@ -1217,9 +1221,46 @@ body.presenting.deck-fullscreen .deck-notes-stage {
     outline: none !important;
   }
 
-  section[data-deck="deck"] > details > :not(section[data-deck]),
-  section[data-deck="section"] > details > :not(section[data-deck]) {
+  section[data-deck="deck"] > details > :not(section[data-deck]):not(.deck-notes-page),
+  section[data-deck="section"] > details > :not(section[data-deck]):not(.deck-notes-page) {
     display: none;
+  }
+
+  /* With the notes on, a page of notes follows a slide's pages (deck-notes.js, printPage): the same size as a slide, and
+     longer notes run on to another page instead of being cut off. */
+  .deck-notes-page {
+    box-sizing: border-box;
+    width: 1280px;
+    min-height: 720px;
+    padding: 48px 80px;
+    font: 22px/1.45 system-ui, sans-serif;
+    color: #000;
+    break-after: page;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .deck-notes-page-title {
+    margin: 0 0 .7em;
+    padding-bottom: .3em;
+    font-size: 1.25em;
+    font-weight: 700;
+    border-bottom: 2px solid #d9a400;
+  }
+
+  .deck-notes-page .deck-notes-label {
+    margin-bottom: .2em;
+    font-size: 15px;
+  }
+
+  .deck-notes-page .deck-notes-group + .deck-notes-group {
+    margin-top: 1em;
+  }
+
+  .deck-notes-page .deck-notes + .deck-notes {
+    margin-top: .7em;
+    padding-top: .7em;
+    border-top: 1px dotted #888;
   }
 
   section[data-deck="slide"] {

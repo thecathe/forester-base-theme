@@ -39,7 +39,8 @@
 // It reuses the stage's own look: every slide is given the class of the one on show, and the
 // stylesheet scales them down.
 //
-// Printing the page (deck-print.js) gives a page for each state of a slide that has more than one.
+// Printing the page (deck-print.js) gives a page for each state of a slide that has more than one, and, with the
+// notes on, a page of notes after a slide that has some.
 //
 // Speaker notes (deck-notes.js, \notes in trees/meta/notes.tree) have a switch of their own, the Notes button beside
 // Present and the n key. This tells that file which slide is on show, by a 'deck:show' event, and hears of the switch
@@ -851,7 +852,7 @@ function init() {
   buildFooters();
   for (const block of root.querySelectorAll('.deck-keys')) block.replaceChildren(keysTable());
   fillGoto();
-  installPrinting(slides, () => presenting);
+  installPrinting(slides, () => presenting, (i) => (notes.has ? notes.printPage(i) : null));
 
   // ---- keys, addresses, resizing ----
 

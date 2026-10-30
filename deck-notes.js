@@ -8,7 +8,8 @@
 //    or of the deck stands under its heading; the table of contents, which would be in the way, is hidden;
 //  - while presenting, a column at the right of the stage shows the notes of the slide on show, and the stage is
 //    narrower to leave room for it. A section's notes show with its first slide, above that slide's own;
-//  - printing follows the switch too (deck.css).
+//  - printing follows the switch too: a slide's notes are printed on a page of their own after the slide's pages
+//    (printPage, which deck-print.js asks for when the page is printed).
 // The switch is not remembered: a page always opens with the notes hidden.
 //
 // deck.js tells this which slide is on show with a 'deck:show' event, and hears of a change with 'deck:notes'.
@@ -23,7 +24,8 @@ const LABELS = { slide: 'Notes', section: 'Notes for the section', deck: 'Notes 
 // `slides` are the deck's slides, `sectionsOf[i]` the deck and sections around slide i (outermost first) and
 // `members` the slides each of them holds. `el`, `button` and `icon` are deck.js's small builders.
 // Returns what deck.js needs to place: `has`, the buttons (`pageItem`, for the deck's metadata line, and `barButton`,
-// for the toolbar), `toggle()` and `stageWidth()`, the room the column takes at the right of the stage.
+// for the toolbar), `toggle()`, `stageWidth()` (the room the column takes at the right of the stage) and
+// `printPage(i)` (see below).
 export function installNotes({ root, slides, sectionsOf, members, titleOf, el, button, icon }) {
   const panels = new Map(); // unit -> the panel holding its notes
   const units = [root, ...root.querySelectorAll('section[data-deck="section"]'), ...slides];
@@ -76,19 +78,41 @@ export function installNotes({ root, slides, sectionsOf, members, titleOf, el, b
     .filter((unit) => panels.has(unit))
     .map((unit) => ({ unit, notes: [...panels.get(unit).querySelectorAll('.deck-notes')] }));
 
+  // The groups as elements in `into`: copies of the notes, each section's under a label saying whose they are (the
+  // slide's own are what the column or the page is for).
+  function fillGroups(into, groups) {
+    for (const { unit, notes } of groups) {
+      const group = el('div', 'deck-notes-group');
+      if (unit.dataset.deck !== 'slide') group.append(el('div', 'deck-notes-label', `${LABELS[unit.dataset.deck]}: ${titleOf(unit)}`));
+      for (const note of notes) group.append(note.cloneNode(true));
+      into.append(group);
+    }
+  }
+
   document.addEventListener('deck:show', (e) => {
     stage.replaceChildren();
     const groups = groupsFor(e.detail.index);
-    for (const { unit, notes } of groups) {
-      const group = el('div', 'deck-notes-group');
-      // A section's notes say whose they are; the slide's own are what the column is for.
-      if (unit.dataset.deck !== 'slide') group.append(el('div', 'deck-notes-label', `${LABELS[unit.dataset.deck]}: ${titleOf(unit)}`));
-      for (const note of notes) group.append(note.cloneNode(true));
-      stage.append(group);
-    }
+    fillGroups(stage, groups);
     if (groups.length === 0) stage.append(el('div', 'deck-notes-none', 'No notes for this slide.'));
     stage.scrollTop = 0;
   });
 
-  return { has: true, pageItem, barButton, toggle, stageWidth: () => stage.offsetWidth };
+  // ---- printing ----
+
+  // The page that follows slide i when the page is printed with the notes on: the slide's number and title, and what the
+  // stage would say (the notes of the sections that begin with it, then its own), or nothing for a slide with no notes.
+  // A page of its own, and not a column beside the slide, because the printed page has a size that cannot change with the
+  // switch and notes can be long: this one runs on to a second page rather than lose any. deck-print.js puts it in the
+  // page before printing and takes it out after.
+  function printPage(i) {
+    if (!on) return null;
+    const groups = groupsFor(i);
+    if (groups.length === 0) return null;
+    const page = el('div', 'deck-notes-page');
+    page.append(el('div', 'deck-notes-page-title', `${i + 1}. ${titleOf(slides[i])}`));
+    fillGroups(page, groups);
+    return page;
+  }
+
+  return { has: true, pageItem, barButton, toggle, stageWidth: () => stage.offsetWidth, printPage };
 }
