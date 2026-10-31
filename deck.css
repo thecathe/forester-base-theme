@@ -401,6 +401,34 @@ body.presenting .deck-notice {
   display: contents;
 }
 
+/* Every text is in the left column and every picture in the right, as in a \pair, whatever a row holds. Left to be placed in
+   turn, a row with no picture (\clearstep{text}) would let the text of the next row slide into the right column, with its
+   picture under it, and every row after it as well. The stage and the printed frames place each cell by its row (below). */
+:is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text) {
+  grid-column: 1;
+}
+
+:is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-visual, .step-visual) {
+  grid-column: 2;
+}
+
+/* A \flip fills whatever wraps it and takes no size of its own: its faces are laid over each other and over it (style.css). As the
+   picture of a pair or a step nothing wraps it, so on the page it is no height at all and what is in it hangs out over the rows below.
+   There, then, the two faces share one grid cell, which is as tall as the taller, and the flip turns as before. (A flip in a sized box
+   keeps that size: the cell is stretched to it. On the stage and on the printed pages the picture is laid over the rows, which is
+   what the flip is made for.) */
+@media screen {
+  body:not(.presenting) :is(.pair-visual, .step-visual) .flip-inner {
+    display: grid;
+  }
+
+  body:not(.presenting) :is(.pair-visual, .step-visual) .flip-face {
+    position: relative;
+    inset: auto;
+    grid-area: 1 / 1;
+  }
+}
+
 /* The left entries of \pairs and \steps are bullets, a dot drawn so that it is the same everywhere. An entry
    that is inside a list item has the item's bullet already, so it has none of its own. In a \steps, on the
    stage and on a printed page (below), the entry we are on has a chevron instead, and the ones we have gone
