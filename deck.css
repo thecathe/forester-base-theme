@@ -136,7 +136,7 @@ section[data-layout="divider"] .agenda:not(.agenda-all) {
 }
 
 .agenda-list li {
-  margin: .2em 0;
+  margin: var(--agenda-gap, .2em) 0;
 }
 
 .agenda-section > a {
