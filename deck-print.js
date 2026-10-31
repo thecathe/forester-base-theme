@@ -80,9 +80,31 @@ function scaleWarnings() {
   });
 }
 
-// Takes over printing for the page: `slides` are the deck's slides, `isPresenting()` says whether it is on the stage, and
-// `pageAfter(i)`, if there is one, gives a page to print after slide i (the speaker notes, deck-notes.js) or null.
-export function installPrinting(slides, isPresenting, pageAfter = () => null) {
+// A link to a slide (`#slide-3`, `#name/2`, which deck.js reads and the page does not have an element for) is, in the PDF of an engine that
+// makes a link to a place in the same page into a jump (Chromium's does), a jump only when an element has the id the link names. Firefox
+// keeps the page's address plus the fragment, whatever the ids. So while the page is printed each slide holds an empty element for each
+// of its addresses, put in first (deck.js says which: `addressesOf(i)`), and taken away after. They are no size (deck.css), in the flow
+// and not absolute: Chromium puts the jump to an element that is positioned absolutely on the wrong page (to slide 2 it went to page 3,
+// to slide 3 to page 5), and a block with no size, first in a slide, moves nothing (the demo and the talk print the same, to the
+// pixel, with and without them). An address the page already has an element for is left to that element.
+function addressTargets(slide, addresses, taken) {
+  const targets = [];
+  for (const id of addresses) {
+    if (taken.has(id) || document.getElementById(id)) continue;
+    taken.add(id);
+    const target = document.createElement('span');
+    target.className = 'deck-print-target';
+    target.id = id;
+    targets.push(target);
+  }
+  slide.prepend(...targets);
+  return () => targets.forEach((t) => t.remove());
+}
+
+// Takes over printing for the page: `slides` are the deck's slides, `isPresenting()` says whether it is on the stage,
+// `pageAfter(i)`, if there is one, gives a page to print after slide i (the speaker notes, deck-notes.js) or null, and `addressesOf(i)`
+// gives the ids to answer to for slide i (see addressTargets).
+export function installPrinting(slides, isPresenting, pageAfter = () => null, addressesOf = () => []) {
   let afterPrint = [];
   window.addEventListener('beforeprint', () => {
     if (isPresenting()) return; // the stage prints the slide on show, as it is
@@ -126,6 +148,12 @@ export function installPrinting(slides, isPresenting, pageAfter = () => null) {
         slide.querySelectorAll('.flip-checkbox').forEach((c, i) => { c.checked = saved.checked[i]; });
       });
     });
+  });
+  window.addEventListener('beforeprint', () => {
+    if (isPresenting()) return;
+    // after the copies of the slides were made (above), which therefore have none: a copy has no ids
+    const taken = new Set();
+    slides.forEach((slide, n) => afterPrint.push(addressTargets(slide, addressesOf(n), taken)));
   });
   window.addEventListener('beforeprint', () => {
     if (isPresenting() || slides.length === 0) return;

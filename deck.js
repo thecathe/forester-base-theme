@@ -853,7 +853,13 @@ function init() {
   buildFooters();
   for (const block of root.querySelectorAll('.deck-keys')) block.replaceChildren(keysTable());
   fillGoto();
-  installPrinting(slides, () => presenting, (i) => (notes.has ? notes.printPage(i) : null));
+  // Every address parseHash reads for slide i, for the ids a PDF's links jump to (deck-print.js): the ways in linksTo, and a section's
+  // own name for its first slide.
+  const addressesOf = (i) => [
+    ...linksTo(i),
+    ...sectionList.filter((s) => s.dataset.slug && bySlug.get(s.dataset.slug) === s && members.get(s)[0] === i).map((s) => s.dataset.slug),
+  ];
+  installPrinting(slides, () => presenting, (i) => (notes.has ? notes.printPage(i) : null), addressesOf);
 
   // ---- keys, addresses, resizing ----
 

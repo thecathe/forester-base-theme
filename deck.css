@@ -1306,6 +1306,15 @@ body.presenting.deck-fullscreen .deck-notes-stage {
     padding: .3em .8em;
   }
 
+  /* deck-print.js puts an empty element for each address of a slide in it, for a PDF's links to jump to: no size, and in the flow
+     (not absolute: see there). */
+  .deck-print-target {
+    display: block;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
   html,
   body {
     margin: 0 !important;
