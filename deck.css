@@ -309,6 +309,36 @@ body.presenting.overview section[data-deck="slide"].current > .deck-footer {
   bottom: 0;
 }
 
+/* \goto (trees/meta/navigation.tree) is drawn as the theme's links to other pages are (a dotted underline, a faint blue under the
+   pointer), since a plain anchor is drawn as the text around it. */
+.deck-link {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  cursor: pointer;
+}
+
+.deck-link:hover {
+  background-color: rgba(0, 100, 255, .1);
+}
+
+/* \goto (trees/meta/navigation.tree) whose target is not in the deck: deck.xsl says why, in the title, and on the build. In red
+   so that it is seen on the page and on the stage, and with a mark for those who cannot tell the colour. */
+.deck-link-broken {
+  color: #b00020;
+  text-decoration: underline wavy #b00020;
+  background: rgba(176, 0, 32, .1);
+  cursor: help;
+}
+
+.deck-link-broken:hover {
+  background: rgba(176, 0, 32, .18);
+}
+
+.deck-link-broken::after {
+  content: ' ⚠';
+  font-size: .8em;
+}
+
 /* A link to a slide that does not exist (a problem with the address, shown in either mode). */
 .deck-error {
   position: fixed;
