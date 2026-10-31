@@ -401,6 +401,17 @@ body.presenting .deck-notice {
   display: contents;
 }
 
+/* Every text is in the left column and every picture in the right, as in a \pair, whatever a row holds. Left to be placed in
+   turn, a row with no picture (\clearstep{text}) would let the text of the next row slide into the right column, with its
+   picture under it, and every row after it as well. The stage and the printed frames place each cell by its row (below). */
+:is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text) {
+  grid-column: 1;
+}
+
+:is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-visual, .step-visual) {
+  grid-column: 2;
+}
+
 /* The left entries of \pairs and \steps are bullets, a dot drawn so that it is the same everywhere. An entry
    that is inside a list item has the item's bullet already, so it has none of its own. In a \steps, on the
    stage and on a printed page (below), the entry we are on has a chevron instead, and the ones we have gone
