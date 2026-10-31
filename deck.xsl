@@ -18,15 +18,22 @@
                           (see deck.js, buildFooters)
     data-deck-warn="..."  on a deck or section that holds content which is not a unit, so is never
                           presented: the reason, with a piece of what is lost (see deck-stray)
+    data-pdf-warn="..."   on a slide that holds raw interactive or media HTML (video, audio, a frame, a canvas, a button,
+                          a form field, a details that is not a \reveal, ...), which a PDF cannot carry: the reason (see
+                          deck.css). Not written when \meta{presentation-pdf}{true} is on the slide, a section it is in or
+                          the deck
 
   A tree is marked only when every tree above it is a deck as well, so a deck nested inside
   a slide is ordinary content, and nothing in the backmatter (the context, backlinks and so
   on, which hold most of a deck page's sections) is ever marked.
 
-  Three build warnings, printed by xsltproc while the pages are rendered (exit code 0): a
-  section whose name is already taken, a section that has no usable name, and a deck or section
-  with content that will not be presented. The last is also written into the page as
-  data-deck-warn, which deck.css outlines in yellow and deck.js repeats while presenting.
+  Build warnings, printed by xsltproc while the pages are rendered (exit code 0): a section
+  whose name is already taken, a section that has no usable name, a deck or section with
+  content that will not be presented, a link to a slide that is not there (see \goto, below) and
+  a slide that holds something a PDF cannot carry. The third is also written into the page as
+  data-deck-warn, which deck.css outlines in yellow and deck.js repeats while presenting; the
+  last as data-pdf-warn, which deck.css outlines in orange on the page only (not on the stage,
+  not in print).
 
   Kept in its own file, with one include in default.xsl and two call-templates in tree.xsl,
   so that the rest of the theme stays close to upstream's.
@@ -163,6 +170,30 @@
           </xsl:variable>
           <xsl:attribute name="data-deck-warn"><xsl:value-of select="$reason" /></xsl:attribute>
           <xsl:message>WARNING deck <xsl:value-of select="$page/f:frontmatter/f:uri" />: <xsl:choose><xsl:when test="not(parent::f:mainmatter/parent::f:tree)">the deck</xsl:when><xsl:otherwise>the section</xsl:otherwise></xsl:choose> "<xsl:value-of select="$title" />" holds content that is not a slide, so it will not be presented (<xsl:value-of select="count($stray)" /> piece<xsl:if test="count($stray) != 1">s</xsl:if>, the first is <xsl:value-of select="$piece" />). Put it in a slide, or take it out.</xsl:message>
+        </xsl:if>
+      </xsl:if>
+
+      <!-- A slide with something a PDF cannot carry. Print gives a \flip and a \reveal a page for each state and keeps the
+           text, the pictures and the links, but raw interactive or media HTML written into a slide (a video, a frame, a
+           canvas, a button, a form field, a details that is not a \reveal, ...) is a still picture in a PDF at best.
+           Said where the slide is made, and nowhere else, so a slide that is fine is never marked. Silenced by
+           \meta{presentation-pdf}{true} on the slide, on a section it is in, or on the deck: whoever wrote the HTML has
+           seen it and made it print as they mean. -->
+      <xsl:if test="not($is-deck)">
+        <xsl:variable name="lost" select="f:mainmatter//html:*[
+          self::html:video or self::html:audio or self::html:iframe or self::html:object or self::html:embed or
+          self::html:canvas or self::html:button or self::html:select or self::html:textarea or self::html:dialog or
+          self::html:script or
+          (self::html:input and not(contains(concat(' ', normalize-space(@class), ' '), ' flip-checkbox '))) or
+          (self::html:details and not(contains(concat(' ', normalize-space(@class), ' '), ' reveal ')))]" />
+        <xsl:if test="$lost and not(ancestor-or-self::f:tree[normalize-space(f:frontmatter/f:meta[@name='presentation-pdf']) = 'true'])">
+          <xsl:variable name="page" select="ancestor-or-self::f:tree[last()]" />
+          <xsl:variable name="what">
+            <xsl:text>&lt;</xsl:text><xsl:value-of select="local-name($lost[1])" /><xsl:text>&gt;</xsl:text>
+            <xsl:if test="count($lost) &gt; 1"> and <xsl:value-of select="count($lost) - 1" /> more</xsl:if>
+          </xsl:variable>
+          <xsl:attribute name="data-pdf-warn">Not carried into a PDF: <xsl:value-of select="$what" />.</xsl:attribute>
+          <xsl:message>WARNING pdf <xsl:value-of select="$page/f:frontmatter/f:uri" />: slide "<xsl:value-of select="f:frontmatter/f:title/@text" />" holds <xsl:value-of select="$what" />, which a PDF cannot carry (print keeps text, pictures, links and every state of a \flip, \reveal and step, not video, audio, frames, canvases or form fields). Put a picture in its place, then say it is meant with \meta{presentation-pdf}{true} on the slide, its section or the deck.</xsl:message>
         </xsl:if>
       </xsl:if>
     </xsl:if>

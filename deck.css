@@ -92,6 +92,28 @@
   }
 }
 
+/* A slide that holds something a PDF cannot carry: raw HTML for a video, audio, a frame, a canvas, a button or a form field (deck.xsl
+   writes the reason into data-pdf-warn, and a build warning). On the page it is outlined with a dashed orange line and the reason
+   across its top, so it is seen before the PDF is made. It is for the page only: the stage shows nothing (whoever presents a video
+   means it, and the rules do not touch the slide's own ::before, which the overview uses for the slide's number), and a print has
+   none of it. \meta{presentation-pdf}{true} on the slide, its section or the deck says it is meant, and takes the mark away. */
+@media screen {
+  body:not(.presenting) section[data-pdf-warn] {
+    outline: 3px dashed #e8590c;
+    outline-offset: 2px;
+  }
+
+  body:not(.presenting) section[data-pdf-warn]::before {
+    content: "\26A0  " attr(data-pdf-warn);
+    display: block;
+    margin: 0 0 .6em;
+    padding: .3em .7em;
+    font: 600 .85rem/1.35 system-ui, sans-serif;
+    color: #fff;
+    background: #c2410c;
+  }
+}
+
 /* \agenda (trees/meta/navigation.tree): the outline deck.js writes into the block. No colours of its
    own, so it reads on a plain slide and on a divider; the entry you are in is bold with a marker, and
    what is behind you is dimmed. */
