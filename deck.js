@@ -859,7 +859,18 @@ function init() {
     ...linksTo(i),
     ...sectionList.filter((s) => s.dataset.slug && bySlug.get(s.dataset.slug) === s && members.get(s)[0] === i).map((s) => s.dataset.slug),
   ];
-  installPrinting(slides, () => presenting, (i) => (notes.has ? notes.printPage(i) : null), addressesOf);
+  // How deep slide i is in a PDF's outline (deck-print.js): a slide directly in the deck is at the top, the first slide of a section (usually
+  // its divider) is the section's own entry, and the others are under it. A section has no heading in print to be an entry itself.
+  const levelOf = (i) => {
+    const depth = sectionsOf[i].length - 1;
+    return Math.max(1, members.get(innermost(i))[0] === i ? depth : depth + 1);
+  };
+  installPrinting(slides, {
+    isPresenting: () => presenting,
+    pageAfter: (i) => (notes.has ? notes.printPage(i) : null),
+    addressesOf,
+    levelOf,
+  });
 
   // ---- keys, addresses, resizing ----
 
