@@ -80,9 +80,44 @@ function scaleWarnings() {
   });
 }
 
-// Takes over printing for the page: `slides` are the deck's slides, `isPresenting()` says whether it is on the stage, and
-// `pageAfter(i)`, if there is one, gives a page to print after slide i (the speaker notes, deck-notes.js) or null.
-export function installPrinting(slides, isPresenting, pageAfter = () => null) {
+// A link to a slide (`#slide-3`, `#name/2`, which deck.js reads and the page does not have an element for) is, in the PDF of an engine that
+// makes a link to a place in the same page into a jump (Chromium's does), a jump only when an element has the id the link names. Firefox
+// keeps the page's address plus the fragment, whatever the ids. So while the page is printed each slide holds an empty element for each
+// of its addresses, put in first (deck.js says which: `addressesOf(i)`), and taken away after. They are no size (deck.css), in the flow
+// and not absolute: Chromium puts the jump to an element that is positioned absolutely on the wrong page (to slide 2 it went to page 3,
+// to slide 3 to page 5), and a block with no size, first in a slide, moves nothing (the demo and the talk print the same, to the
+// pixel, with and without them). An address the page already has an element for is left to that element.
+function addressTargets(slide, addresses, taken) {
+  const targets = [];
+  for (const id of addresses) {
+    if (taken.has(id) || document.getElementById(id)) continue;
+    taken.add(id);
+    const target = document.createElement('span');
+    target.className = 'deck-print-target';
+    target.id = id;
+    targets.push(target);
+  }
+  slide.prepend(...targets);
+  return () => targets.forEach((t) => t.remove());
+}
+
+// The title of a slide is an h1, as every title in a Forester page is, so a PDF's outline of bookmarks (Chromium builds one from the headings)
+// would be flat. While the page is printed each slide's title says how deep it is (aria-level, which the outline follows): see
+// `levelOf` below. A copy of a slide (a page for a state of it) is not a heading again, so that a slide is one bookmark, at its first page.
+function outlineLevel(slide, level) {
+  const title = slide.querySelector(':scope > details > summary h1');
+  if (!title) return () => {};
+  const was = title.getAttribute('aria-level');
+  title.setAttribute('aria-level', String(level));
+  return () => (was === null ? title.removeAttribute('aria-level') : title.setAttribute('aria-level', was));
+}
+
+// Takes over printing for the page: `slides` are the deck's slides, and `about` says what it needs of the deck:
+//   isPresenting()   whether it is on the stage;
+//   pageAfter(i)     a page to print after slide i, if there is one (the speaker notes, deck-notes.js), or null;
+//   addressesOf(i)   the ids to answer to for slide i (see addressTargets);
+//   levelOf(i)       how deep slide i is in the outline, 1 for the top.
+export function installPrinting(slides, { isPresenting, pageAfter = () => null, addressesOf = () => [], levelOf = () => 1 }) {
   let afterPrint = [];
   window.addEventListener('beforeprint', () => {
     if (isPresenting()) return; // the stage prints the slide on show, as it is
@@ -114,6 +149,7 @@ export function installPrinting(slides, isPresenting, pageAfter = () => null) {
       showFrame(slide, frames[0], list);
       copies.forEach((copy, i) => {
         for (const e of copy.querySelectorAll('[id]')) e.removeAttribute('id');
+        for (const h of copy.querySelectorAll('h1, h2, h3, h4, h5, h6')) h.setAttribute('role', 'presentation');
         copy.removeAttribute('id');
         showFrame(copy, frames[i + 1], list);
       });
@@ -125,6 +161,15 @@ export function installPrinting(slides, isPresenting, pageAfter = () => null) {
         slide.querySelectorAll('details.reveal').forEach((d, i) => { d.open = saved.open[i]; });
         slide.querySelectorAll('.flip-checkbox').forEach((c, i) => { c.checked = saved.checked[i]; });
       });
+    });
+  });
+  window.addEventListener('beforeprint', () => {
+    if (isPresenting()) return;
+    // after the copies of the slides were made (above), which therefore have none: a copy has no ids
+    const taken = new Set();
+    slides.forEach((slide, n) => {
+      afterPrint.push(addressTargets(slide, addressesOf(n), taken));
+      afterPrint.push(outlineLevel(slide, levelOf(n)));
     });
   });
   window.addEventListener('beforeprint', () => {

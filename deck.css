@@ -1306,6 +1306,40 @@ body.presenting.deck-fullscreen .deck-notes-stage {
     padding: .3em .8em;
   }
 
+  /* deck-print.js puts an empty element for each address of a slide in it, for a PDF's links to jump to: no size, and in the flow
+     (not absolute: see there). */
+  .deck-print-target {
+    display: block;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
+  /* A \flip turns in 3D on the page (style.css) and hides the face turned away with backface-visibility. Chromium's PDF writer does not
+     hide it: the front and the back of a card came out one on the other, the back mirrored. A printed flip is therefore flat: the one
+     face its state shows (deck-print.js sets the state of each page), with no turn. Firefox's print is the same to look at. */
+  .flip,
+  .flip-inner {
+    perspective: none;
+    transform-style: flat;
+    transition: none;
+  }
+
+  .flip-checkbox:checked ~ .flip-inner,
+  .flip-face,
+  .flip-back {
+    transform: none;
+  }
+
+  .flip-back,
+  .flip-checkbox:checked ~ .flip-inner .flip-front {
+    display: none;
+  }
+
+  .flip-checkbox:checked ~ .flip-inner .flip-back {
+    display: block;
+  }
+
   html,
   body {
     margin: 0 !important;

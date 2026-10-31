@@ -853,7 +853,24 @@ function init() {
   buildFooters();
   for (const block of root.querySelectorAll('.deck-keys')) block.replaceChildren(keysTable());
   fillGoto();
-  installPrinting(slides, () => presenting, (i) => (notes.has ? notes.printPage(i) : null));
+  // Every address parseHash reads for slide i, for the ids a PDF's links jump to (deck-print.js): the ways in linksTo, and a section's
+  // own name for its first slide.
+  const addressesOf = (i) => [
+    ...linksTo(i),
+    ...sectionList.filter((s) => s.dataset.slug && bySlug.get(s.dataset.slug) === s && members.get(s)[0] === i).map((s) => s.dataset.slug),
+  ];
+  // How deep slide i is in a PDF's outline (deck-print.js): a slide directly in the deck is at the top, the first slide of a section (usually
+  // its divider) is the section's own entry, and the others are under it. A section has no heading in print to be an entry itself.
+  const levelOf = (i) => {
+    const depth = sectionsOf[i].length - 1;
+    return Math.max(1, members.get(innermost(i))[0] === i ? depth : depth + 1);
+  };
+  installPrinting(slides, {
+    isPresenting: () => presenting,
+    pageAfter: (i) => (notes.has ? notes.printPage(i) : null),
+    addressesOf,
+    levelOf,
+  });
 
   // ---- keys, addresses, resizing ----
 
