@@ -2,12 +2,12 @@
 <!--
   \clearstep (trees/meta/fragments.tree) has two forms, told apart here, at build time:
 
-    \clearstep{}        a mark. Last child of a \steps or a \pairs, straight after a \step: deck.js ends that row's picture when the
+    \clearstep{}        a mark. Last child of a \steps or a \pairs, straight after a \step: deck-steps.js ends that row's picture when the
                         first fragment after the block arrives. It has no row of its own (and deck.css draws it as nothing).
     \clearstep{text}    a row of text and no picture, as a \step without its picture: it clears the right column as any next
                         row does. Written here as a step of class "step step-blank", so the rest of the machinery sees a row.
 
-  A mark that is not where it belongs, or a \clearstep outside a \steps and a \pairs, would be ignored by deck.js, which would
+  A mark that is not where it belongs, or a \clearstep outside a \steps and a \pairs, would be ignored by deck-steps.js, which would
   leave a picture on the slide that the author meant to clear, so it is said loudly instead, as colour.xsl does for a colour CSS
   would not know:
 
