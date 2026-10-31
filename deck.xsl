@@ -15,7 +15,7 @@
     data-title="..."      on all of them: the plain-text title (no markup, no numbering)
     data-layout="..."     on a unit with \meta{layout}{...}: how a slide is laid out (see deck.css)
     data-footer="..."     on a unit with \meta{footer}{none} or {show}: whether its slide has the footer
-                          (see deck.js, buildFooters)
+                          (see deck-footers.js)
     data-deck-warn="..."  on a deck or section that holds content which is not a unit, so is never
                           presented: the reason, with a piece of what is lost (see deck-stray)
     data-pdf-warn="..."   on a slide that holds raw interactive or media HTML (video, audio, a frame, a canvas, a button,
@@ -31,7 +31,7 @@
   whose name is already taken, a section that has no usable name, a deck or section with
   content that will not be presented, a link to a slide that is not there (see \goto, below) and
   a slide that holds something a PDF cannot carry. The third is also written into the page as
-  data-deck-warn, which deck.css outlines in yellow and deck.js repeats while presenting; the
+  data-deck-warn, which deck.css outlines in yellow and deck-bar.js repeats while presenting; the
   last as data-pdf-warn, which deck.css outlines in orange on the page only (not on the stage,
   not in print).
 
@@ -150,7 +150,7 @@
         <!-- Only units are presented, so anything else a deck or section holds (text, a paragraph,
              a list) is lost on the stage and in print. What is allowed, because it is not meant to be
              shown as it stands, is taken out of $stray here, and nowhere else: so far the footer
-             definition (\footer, trees/meta/footer.tree), which deck.js draws on each slide, and speaker
+             definition (\footer, trees/meta/footer.tree), which deck-footers.js draws on each slide, and speaker
              notes (\notes, trees/meta/notes.tree), which deck-notes.js shows on request. -->
         <xsl:variable name="stray" select="f:mainmatter/*[not(self::f:tree)][not(self::html:div and @class = 'deck-footer-def')][not(self::html:aside and @class = 'deck-notes')] | f:mainmatter/text()[normalize-space(.) != '']" />
         <xsl:if test="$stray">
@@ -200,7 +200,7 @@
   </xsl:template>
 
   <!-- \goto{target}{text} (trees/meta/navigation.tree): a link to a slide of the page's own deck, which comes here with no
-       address. The target is one of the three forms deck.js reads from the address (parseHash, which this repeats): slide-3, a
+       address. The target is one of the three forms deck-shape.js reads from the address (parseHash, which this repeats): slide-3, a
        section's name, or name/2, with or without a leading #. When it points somewhere the link gets that address, and is
        drawn as any link is. When it points nowhere it is said loudly, in the way the other deck problems are:
          - a WARNING printed while the pages are rendered (exit code 0), naming the page, the link and why;
@@ -219,7 +219,7 @@
         </xsl:element>
       </xsl:when>
       <xsl:otherwise>
-        <!-- the slides of the page's deck, as deck.js counts them: a unit that is not itself a section -->
+        <!-- the slides of the page's deck, as deck-shape.js counts them: a unit that is not itself a section -->
         <xsl:variable name="slides" select="$page/descendant::f:tree[parent::f:mainmatter/parent::f:tree][not(ancestor::f:backmatter)][not(ancestor::f:tree[not(normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true')])][not(normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true')]" />
         <xsl:variable name="written" select="normalize-space(@data-goto)" />
         <xsl:variable name="target">
@@ -238,7 +238,7 @@
         </xsl:variable>
         <xsl:variable name="rest" select="substring-after($target, '/')" />
         <xsl:variable name="shaped" select="$name != '' and (not(contains($target, '/')) or ($rest != '' and translate($rest, '0123456789', '') = ''))" />
-        <!-- the slide counts of the sections called $name (the first of them is the one deck.js links to) -->
+        <!-- the slide counts of the sections called $name (the first of them is the one deck-shape.js links to) -->
         <xsl:variable name="found">
           <xsl:if test="$shaped and not($is-position)">
             <xsl:for-each select="$sections">
