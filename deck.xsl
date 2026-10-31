@@ -51,6 +51,37 @@
     <xsl:value-of select="translate(normalize-space(translate($lower, $others, $deck-blanks)), ' ', '-')" />
   </xsl:template>
 
+  <!-- One "x" for each deck or section, before $me in the page (earlier, or one that holds it), whose name is $base:
+       how many sections already have it, which is what the "-2" of a repeated name counts. -->
+  <xsl:template name="deck-earlier">
+    <xsl:param name="me" />
+    <xsl:param name="base" />
+    <xsl:variable name="page" select="$me/ancestor-or-self::f:tree[last()]" />
+    <xsl:for-each select="$page/descendant-or-self::f:tree[normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true'][not(ancestor::f:backmatter)][not(ancestor::f:tree[not(normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true')])]">
+      <xsl:variable name="other">
+        <xsl:call-template name="deck-slugify"><xsl:with-param name="text" select="f:frontmatter/f:title/@text" /></xsl:call-template>
+      </xsl:variable>
+      <xsl:if test="$other = $base and count(. | $me/preceding::f:tree | $me/ancestor::f:tree) = count($me/preceding::f:tree | $me/ancestor::f:tree)">x</xsl:if>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- The link name of a deck or section ($me, a tree): its title as a link name, with "-2", "-3" for a name that is
+       taken (the data-slug that deck-attributes writes, for a section that has no usable name an empty one). -->
+  <xsl:template name="deck-slug">
+    <xsl:param name="me" />
+    <xsl:variable name="base">
+      <xsl:call-template name="deck-slugify"><xsl:with-param name="text" select="$me/f:frontmatter/f:title/@text" /></xsl:call-template>
+    </xsl:variable>
+    <xsl:variable name="earlier">
+      <xsl:call-template name="deck-earlier"><xsl:with-param name="me" select="$me" /><xsl:with-param name="base" select="$base" /></xsl:call-template>
+    </xsl:variable>
+    <xsl:value-of select="$base" />
+    <xsl:if test="string-length($earlier) &gt; 0">
+      <xsl:text>-</xsl:text>
+      <xsl:value-of select="string-length($earlier) + 1" />
+    </xsl:if>
+  </xsl:template>
+
   <!-- In the page's <head>: the deck's stylesheet and script, on a deck page only. -->
   <xsl:template name="deck-head">
     <xsl:if test="normalize-space(/f:tree/f:frontmatter/f:meta[@name='presentation']) = 'true'">
@@ -90,12 +121,7 @@
 
         <!-- One "x" for each deck or section, earlier in the page, with the same name. -->
         <xsl:variable name="earlier">
-          <xsl:for-each select="$page/descendant-or-self::f:tree[normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true'][not(ancestor::f:backmatter)][not(ancestor::f:tree[not(normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true')])]">
-            <xsl:variable name="other">
-              <xsl:call-template name="deck-slugify"><xsl:with-param name="text" select="f:frontmatter/f:title/@text" /></xsl:call-template>
-            </xsl:variable>
-            <xsl:if test="$other = $base and count(. | $me/preceding::f:tree | $me/ancestor::f:tree) = count($me/preceding::f:tree | $me/ancestor::f:tree)">x</xsl:if>
-          </xsl:for-each>
+          <xsl:call-template name="deck-earlier"><xsl:with-param name="me" select="$me" /><xsl:with-param name="base" select="$base" /></xsl:call-template>
         </xsl:variable>
 
         <xsl:variable name="slug">
@@ -140,6 +166,111 @@
         </xsl:if>
       </xsl:if>
     </xsl:if>
+  </xsl:template>
+
+  <!-- \goto{target}{text} (trees/meta/navigation.tree): a link to a slide of the page's own deck, which comes here with no
+       address. The target is one of the three forms deck.js reads from the address (parseHash, which this repeats): slide-3, a
+       section's name, or name/2, with or without a leading #. When it points somewhere the link gets that address, and is
+       drawn as any link is. When it points nowhere it is said loudly, in the way the other deck problems are:
+         - a WARNING printed while the pages are rendered (exit code 0), naming the page, the link and why;
+         - on the page, the link drawn in red (deck-link-broken) with the reason as its title, so on hover.
+       Only the page's own deck can be looked at (every name and slide count is in front of this stylesheet, and nothing of any
+       other page is), so a link on a page that is not a deck, or in its backmatter (a slide shown on some other page), is left
+       as text. A position (slide-3) means the slide of the page it is on; a name does not move. -->
+  <xsl:template match="html:a[@class = 'deck-link']" priority="2">
+    <xsl:variable name="page" select="ancestor::f:tree[last()]" />
+    <xsl:variable name="sections" select="$page/descendant-or-self::f:tree[normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true'][not(ancestor::f:backmatter)][not(ancestor::f:tree[not(normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true')])]" />
+    <xsl:choose>
+      <xsl:when test="not($sections) or ancestor::f:backmatter">
+        <xsl:element namespace="http://www.w3.org/1999/xhtml" name="span">
+          <xsl:attribute name="class">deck-link deck-link-inert</xsl:attribute>
+          <xsl:apply-templates select="node()" />
+        </xsl:element>
+      </xsl:when>
+      <xsl:otherwise>
+        <!-- the slides of the page's deck, as deck.js counts them: a unit that is not itself a section -->
+        <xsl:variable name="slides" select="$page/descendant::f:tree[parent::f:mainmatter/parent::f:tree][not(ancestor::f:backmatter)][not(ancestor::f:tree[not(normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true')])][not(normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true')]" />
+        <xsl:variable name="written" select="normalize-space(@data-goto)" />
+        <xsl:variable name="target">
+          <xsl:choose>
+            <xsl:when test="starts-with($written, '#')"><xsl:value-of select="substring($written, 2)" /></xsl:when>
+            <xsl:otherwise><xsl:value-of select="$written" /></xsl:otherwise>
+          </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="position" select="substring-after($target, 'slide-')" />
+        <xsl:variable name="is-position" select="starts-with($target, 'slide-') and $position != '' and translate($position, '0123456789', '') = ''" />
+        <xsl:variable name="name">
+          <xsl:choose>
+            <xsl:when test="contains($target, '/')"><xsl:value-of select="substring-before($target, '/')" /></xsl:when>
+            <xsl:otherwise><xsl:value-of select="$target" /></xsl:otherwise>
+          </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="rest" select="substring-after($target, '/')" />
+        <xsl:variable name="shaped" select="$name != '' and (not(contains($target, '/')) or ($rest != '' and translate($rest, '0123456789', '') = ''))" />
+        <!-- the slide counts of the sections called $name (the first of them is the one deck.js links to) -->
+        <xsl:variable name="found">
+          <xsl:if test="$shaped and not($is-position)">
+            <xsl:for-each select="$sections">
+              <xsl:variable name="slug">
+                <xsl:call-template name="deck-slug"><xsl:with-param name="me" select="." /></xsl:call-template>
+              </xsl:variable>
+              <xsl:if test="$slug = $name">
+                <xsl:value-of select="count($slides[count(ancestor::f:tree | current()) = count(ancestor::f:tree)])" />
+                <xsl:text>,</xsl:text>
+              </xsl:if>
+            </xsl:for-each>
+          </xsl:if>
+        </xsl:variable>
+        <xsl:variable name="inside" select="substring-before($found, ',')" />
+        <xsl:variable name="n">
+          <xsl:choose>
+            <xsl:when test="$rest = ''">1</xsl:when>
+            <xsl:otherwise><xsl:value-of select="number($rest)" /></xsl:otherwise>
+          </xsl:choose>
+        </xsl:variable>
+
+        <xsl:variable name="reason">
+          <xsl:choose>
+            <xsl:when test="$target = ''">it names nothing: give slide-3, the name of a section, or name/2</xsl:when>
+            <xsl:when test="$is-position">
+              <xsl:if test="number($position) &lt; 1 or number($position) &gt; count($slides)">
+                <xsl:text>there is no slide </xsl:text><xsl:value-of select="number($position)" />
+                <xsl:text> (this deck has </xsl:text><xsl:value-of select="count($slides)" />
+                <xsl:text> slide</xsl:text><xsl:if test="count($slides) != 1">s</xsl:if><xsl:text>)</xsl:text>
+              </xsl:if>
+            </xsl:when>
+            <xsl:when test="not($shaped)">it is not a slide address: use slide-3, the name of a section, or name/2</xsl:when>
+            <xsl:when test="$found = ''">
+              <xsl:text>there is no section called “</xsl:text><xsl:value-of select="$name" />
+              <xsl:text>” (a name is the title in lower case, with hyphens between the words)</xsl:text>
+            </xsl:when>
+            <xsl:when test="$inside = '0'">the section “<xsl:value-of select="$name" />” has no slides</xsl:when>
+            <xsl:when test="$n &lt; 1 or $n &gt; number($inside)">
+              <xsl:text>the section “</xsl:text><xsl:value-of select="$name" />
+              <xsl:text>” has </xsl:text><xsl:value-of select="$inside" />
+              <xsl:text> slide</xsl:text><xsl:if test="$inside != '1'">s</xsl:if>
+              <xsl:text>, so there is no slide </xsl:text><xsl:value-of select="$n" /><xsl:text> in it</xsl:text>
+            </xsl:when>
+          </xsl:choose>
+        </xsl:variable>
+
+        <xsl:element namespace="http://www.w3.org/1999/xhtml" name="a">
+          <xsl:copy-of select="@*[name() != 'class']" />
+          <xsl:attribute name="class">
+            <xsl:text>deck-link</xsl:text>
+            <xsl:if test="$reason != ''"> deck-link-broken</xsl:if>
+          </xsl:attribute>
+          <xsl:attribute name="href">#<xsl:value-of select="$target" /></xsl:attribute>
+          <xsl:if test="$reason != ''">
+            <xsl:attribute name="title">This link goes nowhere: <xsl:value-of select="$reason" />.</xsl:attribute>
+          </xsl:if>
+          <xsl:apply-templates select="node()" />
+        </xsl:element>
+        <xsl:if test="$reason != ''">
+          <xsl:message>WARNING link <xsl:value-of select="$page/f:frontmatter/f:uri" />: the link “<xsl:value-of select="normalize-space(string(.))" />” goes to #<xsl:value-of select="$target" />, but <xsl:value-of select="$reason" />. Fix the target, or take the link out.</xsl:message>
+        </xsl:if>
+      </xsl:otherwise>
+    </xsl:choose>
   </xsl:template>
 
 </xsl:stylesheet>
