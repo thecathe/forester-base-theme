@@ -176,14 +176,16 @@
     <li class="meta-item">
       <xsl:choose>
         <!-- Rich content such as [foo.com](https://foo.com): `.` would be the
-             link text only, giving a relative href, so use the link's href. -->
+             link text only, giving a relative href, so use the link's href.
+             data-meta says which key the link came from (`slides` and `video` are
+             links too), for what reads a tree's page for where it leads (deck-pdf). -->
         <xsl:when test=".//f:link/@href">
-          <a class="link external" href="{(.//f:link/@href)[1]}">
+          <a class="link external" data-meta="{@name}" href="{(.//f:link/@href)[1]}">
             <xsl:value-of select="(.//f:link)[1]" />
           </a>
         </xsl:when>
         <xsl:otherwise>
-          <a class="link external" href="{.}">
+          <a class="link external" data-meta="{@name}" href="{.}">
             <xsl:value-of select="." />
           </a>
         </xsl:otherwise>
