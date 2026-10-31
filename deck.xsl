@@ -51,6 +51,37 @@
     <xsl:value-of select="translate(normalize-space(translate($lower, $others, $deck-blanks)), ' ', '-')" />
   </xsl:template>
 
+  <!-- One "x" for each deck or section, before $me in the page (earlier, or one that holds it), whose name is $base:
+       how many sections already have it, which is what the "-2" of a repeated name counts. -->
+  <xsl:template name="deck-earlier">
+    <xsl:param name="me" />
+    <xsl:param name="base" />
+    <xsl:variable name="page" select="$me/ancestor-or-self::f:tree[last()]" />
+    <xsl:for-each select="$page/descendant-or-self::f:tree[normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true'][not(ancestor::f:backmatter)][not(ancestor::f:tree[not(normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true')])]">
+      <xsl:variable name="other">
+        <xsl:call-template name="deck-slugify"><xsl:with-param name="text" select="f:frontmatter/f:title/@text" /></xsl:call-template>
+      </xsl:variable>
+      <xsl:if test="$other = $base and count(. | $me/preceding::f:tree | $me/ancestor::f:tree) = count($me/preceding::f:tree | $me/ancestor::f:tree)">x</xsl:if>
+    </xsl:for-each>
+  </xsl:template>
+
+  <!-- The link name of a deck or section ($me, a tree): its title as a link name, with "-2", "-3" for a name that is
+       taken (the data-slug that deck-attributes writes, for a section that has no usable name an empty one). -->
+  <xsl:template name="deck-slug">
+    <xsl:param name="me" />
+    <xsl:variable name="base">
+      <xsl:call-template name="deck-slugify"><xsl:with-param name="text" select="$me/f:frontmatter/f:title/@text" /></xsl:call-template>
+    </xsl:variable>
+    <xsl:variable name="earlier">
+      <xsl:call-template name="deck-earlier"><xsl:with-param name="me" select="$me" /><xsl:with-param name="base" select="$base" /></xsl:call-template>
+    </xsl:variable>
+    <xsl:value-of select="$base" />
+    <xsl:if test="string-length($earlier) &gt; 0">
+      <xsl:text>-</xsl:text>
+      <xsl:value-of select="string-length($earlier) + 1" />
+    </xsl:if>
+  </xsl:template>
+
   <!-- In the page's <head>: the deck's stylesheet and script, on a deck page only. -->
   <xsl:template name="deck-head">
     <xsl:if test="normalize-space(/f:tree/f:frontmatter/f:meta[@name='presentation']) = 'true'">
@@ -90,12 +121,7 @@
 
         <!-- One "x" for each deck or section, earlier in the page, with the same name. -->
         <xsl:variable name="earlier">
-          <xsl:for-each select="$page/descendant-or-self::f:tree[normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true'][not(ancestor::f:backmatter)][not(ancestor::f:tree[not(normalize-space(f:frontmatter/f:meta[@name='presentation']) = 'true')])]">
-            <xsl:variable name="other">
-              <xsl:call-template name="deck-slugify"><xsl:with-param name="text" select="f:frontmatter/f:title/@text" /></xsl:call-template>
-            </xsl:variable>
-            <xsl:if test="$other = $base and count(. | $me/preceding::f:tree | $me/ancestor::f:tree) = count($me/preceding::f:tree | $me/ancestor::f:tree)">x</xsl:if>
-          </xsl:for-each>
+          <xsl:call-template name="deck-earlier"><xsl:with-param name="me" select="$me" /><xsl:with-param name="base" select="$base" /></xsl:call-template>
         </xsl:variable>
 
         <xsl:variable name="slug">
