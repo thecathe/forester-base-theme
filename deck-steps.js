@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: CC0-1.0
 //
 // The steps of a slide, which deck.js (the stage) and deck-print.js (the printed pages) both use: what arrives
-// on which press, and how a fragment looks at a given press. It reads the page and nothing else, so it
+// on which press, and how a fragment looks at a given press. It reads the page and nothing else (but for
+// layoutSteps, which numbers the rows of a \pairs or \steps once, when the page loads), so it
 // has no idea which slide is on show or whether anything is being presented.
 //
 // A fragment is an element with data-step-from, a .fragment, or an item of a list inside an .incremental
@@ -161,4 +162,14 @@ export function stepsOf(slide) {
     stepCache.set(slide, s);
   }
   return s;
+}
+
+// \pairs and \steps lay their rows out by row number and by how many there are (deck.css), which only the markup can
+// tell. Done once, when the page loads.
+export function layoutSteps(root) {
+  for (const block of root.querySelectorAll('.pairs, .steps')) {
+    const rows = [...block.querySelectorAll(':scope > .pair, :scope > .step')];
+    block.style.setProperty('--n', String(rows.length));
+    rows.forEach((row, i) => row.style.setProperty('--r', String(i + 1)));
+  }
 }
