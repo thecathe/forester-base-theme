@@ -1236,6 +1236,13 @@ body.presenting.deck-fullscreen .deck-notes-stage {
 
 /* ---- print: one slide a page ---- */
 
+/* The page is 1280 by 720 CSS pixels, but a print dialog may scale it (a saved setting of 105% is easy to have), and then the page
+   holds fewer CSS pixels than that: a slide of 1280 by 720 pixels no longer fits it and runs on to a second page, with its footer
+   alone on that one. So a printed slide is not given in pixels but as the page it is on: as wide as the article that holds it (which
+   is the width of the page) and 16 to 9, a hair under (so that rounding cannot make it a whisker taller than the page, which would
+   break it in two). Its type stays in pixels, so that a scale does what it says: at 105% the slide is the same page with its type 5%
+   bigger (it wraps a little differently), and at 100% everything is as it was, 1280 by 720 pixels. Not vw and vh, which in a print are the
+   window's, and not the container units (cqw), which Firefox lays text out with before it knows the page's size. */
 @media print {
   @page {
     size: 1280px 720px;
@@ -1294,12 +1301,12 @@ body.presenting.deck-fullscreen .deck-notes-stage {
     display: none;
   }
 
-  /* With the notes on, a page of notes follows a slide's pages (deck-notes.js, printPage): the same size as a slide, and
-     longer notes run on to another page instead of being cut off. */
+  /* With the notes on, a page of notes follows a slide's pages (deck-notes.js, printPage): as wide as a slide, and
+     longer notes run on to another page instead of being cut off. It is as tall as its notes (a page break follows it, so it needs no
+     minimum, and a box with an aspect ratio would not run on). */
   .deck-notes-page {
     box-sizing: border-box;
-    width: 1280px;
-    min-height: 720px;
+    width: 100%;
     padding: 48px 80px;
     font: 22px/1.45 system-ui, sans-serif;
     color: #000;
@@ -1334,8 +1341,8 @@ body.presenting.deck-fullscreen .deck-notes-stage {
   section[data-deck="slide"] {
     position: relative;
     box-sizing: border-box;
-    width: 1280px;
-    height: 720px;
+    width: 100%;
+    aspect-ratio: 1280 / 719.95;
     margin: 0;
     padding: 0 4%;
     overflow: hidden;
