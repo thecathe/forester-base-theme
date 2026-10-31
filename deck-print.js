@@ -116,11 +116,14 @@ function outlineLevel(slide, level) {
 //   isPresenting()   whether it is on the stage;
 //   pageAfter(i)     a page to print after slide i, if there is one (the speaker notes, deck-notes.js), or null;
 //   addressesOf(i)   the ids to answer to for slide i (see addressTargets);
-//   levelOf(i)       how deep slide i is in the outline, 1 for the top.
-export function installPrinting(slides, { isPresenting, pageAfter = () => null, addressesOf = () => [], levelOf = () => 1 }) {
+//   levelOf(i)       how deep slide i is in the outline, 1 for the top;
+//   followLinks()    sends the links to other trees where those trees lead, and returns what puts them back (deck-links.js).
+export function installPrinting(slides, { isPresenting, pageAfter = () => null, addressesOf = () => [], levelOf = () => 1, followLinks = () => () => {} }) {
   let afterPrint = [];
   window.addEventListener('beforeprint', () => {
-    if (isPresenting()) return; // the stage prints the slide on show, as it is
+    if (isPresenting()) return; // the stage prints the slide on show, as it is (with its links already sent on)
+    // Before the copies of the slides below are made, so that they have the links as they are printed.
+    afterPrint.push(followLinks());
     slides.forEach((slide, n) => {
       // Put in first, so that the copies of the slide, which go in straight after it, come before it.
       const extra = pageAfter(n);

@@ -361,6 +361,17 @@ body.presenting.overview section[data-deck="slide"].current > .deck-footer {
   font-size: .8em;
 }
 
+/* A link to another tree that leads nowhere, while presenting or printing (deck-links.js takes its address away): drawn as the text
+   it is, not as the theme's links to other pages are (a dotted underline, a faint blue under the pointer). The span the theme
+   puts round the link has those too. */
+span.link a.deck-unlinked,
+span.link:has(> a.deck-unlinked) {
+  text-decoration: none;
+  box-shadow: none;
+  background: none;
+  cursor: auto;
+}
+
 /* A link to a slide that does not exist (a problem with the address, shown in either mode). */
 .deck-error {
   position: fixed;
