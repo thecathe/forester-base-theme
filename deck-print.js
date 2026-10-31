@@ -46,6 +46,29 @@ function showFrame(el, frame, list) {
 
 const STEP_CLASSES = ['deck-hidden', 'deck-past', 'deck-current'];
 
+// What the first printed page says when the page is not the size the slides were made for, 1280 CSS pixels wide: the print dialog's
+// Scale is not 100% (or its margins are not none). Nothing in a page can read the dialog (a script gets nothing at print time, and in
+// Firefox a media query sees the window and a container query is not evaluated in a print), so the printed page measures itself:
+// a warning as wide as the page minus 1280px (the width is `calc((1280px - 100%) * 1000)`, deck.css) is zero wide on a page of exactly
+// 1280px and clipped to nothing, and as wide as the page on a page that is narrower, and the other way round for one that is wider. The
+// pages are what the print preview shows, so it is seen before the print is made. The two are put in the first slide after the copies
+// of the slides are made, so they are on the first page only.
+const SCALE_WARNINGS = [
+  ['above', '⚠ Print scale above 100%, or margins not None: set Scale to 100% and Margins to None, then print again.'],
+  ['below', '⚠ Print scale below 100%: set Scale to 100%, then print again.'],
+];
+
+function scaleWarnings() {
+  return SCALE_WARNINGS.map(([which, text]) => {
+    const box = document.createElement('div');
+    box.className = `deck-print-warn ${which}`;
+    const words = document.createElement('span');
+    words.textContent = text;
+    box.append(words);
+    return box;
+  });
+}
+
 // Takes over printing for the page: `slides` are the deck's slides, `isPresenting()` says whether it is on the stage, and
 // `pageAfter(i)`, if there is one, gives a page to print after slide i (the speaker notes, deck-notes.js) or null.
 export function installPrinting(slides, isPresenting, pageAfter = () => null) {
@@ -92,6 +115,12 @@ export function installPrinting(slides, isPresenting, pageAfter = () => null) {
         slide.querySelectorAll('.flip-checkbox').forEach((c, i) => { c.checked = saved.checked[i]; });
       });
     });
+  });
+  window.addEventListener('beforeprint', () => {
+    if (isPresenting() || slides.length === 0) return;
+    const warnings = scaleWarnings();
+    slides[0].prepend(...warnings);
+    afterPrint.push(() => warnings.forEach((w) => w.remove()));
   });
   window.addEventListener('afterprint', () => {
     for (const undo of afterPrint) undo();

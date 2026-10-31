@@ -1236,6 +1236,12 @@ body.presenting.deck-fullscreen .deck-notes-stage {
 
 /* ---- print: one slide a page ---- */
 
+/* deck-print.js puts a warning for a print scale that is not 100% in the first slide, while it is being printed (see there for how
+   it knows). It is not part of the screen. */
+.deck-print-warn {
+  display: none;
+}
+
 /* The page is 1280 by 720 CSS pixels, but a print dialog may scale it (a saved setting of 105% is easy to have), and then the page
    holds fewer CSS pixels than that: a slide of 1280 by 720 pixels no longer fits it and runs on to a second page, with its footer
    alone on that one. So a printed slide is not given in pixels but as the page it is on: as wide as the article that holds it (which
@@ -1247,6 +1253,35 @@ body.presenting.deck-fullscreen .deck-notes-stage {
   @page {
     size: 1280px 720px;
     margin: 0;
+  }
+
+  .deck-print-warn {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 99;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
+    font: 600 16px/1.4 system-ui, sans-serif;
+    color: #fff;
+    background: #b00020;
+  }
+
+  /* On a page narrower than 1280px the first has a width, on one that is wider the second, and on one of exactly 1280px neither:
+     a width that is not positive is nothing, and what it holds is clipped. The padding is inside, so that there is none either. */
+  .deck-print-warn.above {
+    width: calc((1280px - 100%) * 1000);
+  }
+
+  .deck-print-warn.below {
+    width: calc((100% - 1280px) * 1000);
+  }
+
+  .deck-print-warn > span {
+    display: block;
+    padding: .3em .8em;
   }
 
   html,
