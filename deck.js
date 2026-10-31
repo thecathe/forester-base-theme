@@ -25,6 +25,7 @@
 //   deck-keys.js      the keys, the ? help (deck.help) and the list of keys \keys shows
 //   deck-wheel.js     the wheel and trackpad, one move for each flick
 //   deck-overview.js  every slide at once, small (deck.overview): a mode of the stage, asked to leave before every move
+//   deck-links.js     links to other trees go where the tree leads, while presenting and printing (deck.links)
 //   deck-print.js     the printed pages: a page for each state of a slide, the notes, the PDF's links
 //   deck-ui.js        the builders they share (deck.ui)
 // A part that is in the way of another is told by this file, not by the part: the overview leaves before a move and when
@@ -49,6 +50,7 @@ import { installBar } from './deck-bar.js';
 import { installHelp, installKeys } from './deck-keys.js';
 import { installWheel } from './deck-wheel.js';
 import { installOverview } from './deck-overview.js';
+import { installLinks } from './deck-links.js';
 
 function init() {
   const root = document.querySelector('article > section[data-deck="deck"]');
@@ -63,7 +65,7 @@ function init() {
   const deck = {
     root, slides, last, shape, state, ui: { el, icon, button },
     show, enter, exit, next, prev, nextSection, prevSection, enterFullscreen, toggleFullscreen,
-    // set as the parts are installed (below): notes, bar, help, overview
+    // set as the parts are installed (below): notes, bar, help, overview, links
   };
 
   // ---- moving ----
@@ -177,8 +179,10 @@ function init() {
   deck.bar = installBar(deck);
   deck.help = installHelp(deck);
   deck.overview = installOverview(deck);
+  deck.links = installLinks(deck);
   installPrinting(slides, {
     isPresenting: () => state.presenting,
+    followLinks: deck.links.follow,
     pageAfter: (i) => (deck.notes.has ? deck.notes.printPage(i) : null),
     addressesOf: shape.addressesOf,
     levelOf: shape.levelOf,
