@@ -11,7 +11,9 @@ import { FRAGMENTS, setFragment, stepsOf } from './deck-steps.js';
 // prints as several pages, one for each state:
 //  - for each step picture, the slide as it is just after that picture arrives;
 //  - for each flip that turns on a press (\flipi), the slide just before and just after it turns;
-//  - for the flips that turn on a click, a last page with them all turned over, the others showing their fronts.
+//  - for each flip that turns on a click, a copy of the page with that flip, and no other, turned over: straight after the page where
+//    it first shows (for the picture of a step, the page where that picture arrives, since the next step's picture takes its place and
+//    its back would be lost), and for any other flip after the last page.
 // A \reveal is always printed open: what it hides is what the page is for, and it makes no page of its own. A slide with
 // no step picture and no flip is one page, as before.
 // The extra pages are copies of the slide, made for the printing and taken away after it.
@@ -27,20 +29,29 @@ function printFrames(slide) {
   }
   const ordered = [...presses].sort((a, b) => a - b);
   if (ordered.length === 0 || ordered[ordered.length - 1] < count) ordered.push(count);
-  const frames = ordered.map((press) => ({ press, turned: false }));
-  if ([...slide.querySelectorAll('.flip-checkbox')].some((c) => !c.closest('[data-step-does]'))) frames.push({ press: count, turned: true });
+  const frames = ordered.map((press) => ({ press, turned: [] }));
+  clickFlips(slide).forEach((flip, i) => {
+    const host = flip.closest('.step-visual');
+    const picture = host && list.find((f) => f.el === host);
+    // after the page of its picture (and the copies of the flips before it in the same picture), or else at the end
+    const at = picture ? frames.findLastIndex((frame) => frame.press === picture.from) : -1;
+    frames.splice(at < 0 ? frames.length : at + 1, 0, { press: at < 0 ? count : picture.from, turned: [i] });
+  });
   return frames;
 }
 
-// Sets a slide (or a copy of one, whose steps are in the same order) to a page's state. The flips that the
-// steps turn are left as the press has them.
+// The flips of a slide that turn when they are clicked (and not those the steps turn), in the order of the page.
+function clickFlips(el) {
+  return [...el.querySelectorAll('.flip-checkbox')].filter((c) => !c.closest('[data-step-does]'));
+}
+
+// Sets a slide (or a copy of one, whose steps and flips are in the same order) to a page's state: `turned` says which of the
+// flips that turn on a click are over. The flips that the steps turn are left as the press has them.
 function showFrame(el, frame, list) {
   const els = el.querySelectorAll(FRAGMENTS);
   list.forEach((f, i) => setFragment(f, els[i], frame.press));
   for (const d of el.querySelectorAll('details.reveal')) d.open = true;
-  for (const c of el.querySelectorAll('.flip-checkbox')) {
-    if (!c.closest('[data-step-does]')) c.checked = frame.turned;
-  }
+  clickFlips(el).forEach((c, i) => { c.checked = frame.turned.includes(i); });
   el.classList.add('deck-frame');
 }
 
