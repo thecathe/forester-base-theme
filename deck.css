@@ -1352,6 +1352,21 @@ body.presenting.deck-fullscreen .deck-notes-stage {
     display: block;
   }
 
+  /* A flip in a box that fits (style.css) keeps the room of both faces, the one turned away only unseen, so that what comes
+     after it is at the same height on the page of each side. */
+  .box.fit > .flip > .flip-inner > .flip-face {
+    display: block;
+  }
+
+  .box.fit > .flip > .flip-inner > .flip-back,
+  .box.fit > .flip > .flip-checkbox:checked ~ .flip-inner > .flip-front {
+    visibility: hidden;
+  }
+
+  .box.fit > .flip > .flip-checkbox:checked ~ .flip-inner > .flip-back {
+    visibility: visible;
+  }
+
   html,
   body {
     margin: 0 !important;
