@@ -803,6 +803,26 @@ ol li ol li ol {
   object-fit: contain;
 }
 
+/* `fit`, the word for a \box that holds a flip and has no size to give it: the box is as tall as the taller of the two faces, so
+   what is written after it comes below both. A flip takes no size of its own (its faces are laid over it), so without this the
+   flip is no height at all and its faces hang out over whatever follows. Here the faces share one grid cell instead, which is
+   as tall as the taller, and the flip turns as before. (On the plain page deck.css does the same for the flip that is the
+   picture of a step; this is for one that has something after it, or that is not the picture.) */
+.box.fit > .flip {
+  height: auto;
+}
+
+.box.fit > .flip > .flip-inner {
+  display: grid;
+  height: auto;
+}
+
+.box.fit > .flip > .flip-inner > .flip-face {
+  position: relative;
+  inset: auto;
+  grid-area: 1 / 1;
+}
+
 /* \reveal: a native details/summary. The theme hides every summary
    marker (see details>summary above), so this brings its own arrow. */
 .reveal {
