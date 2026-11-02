@@ -232,8 +232,8 @@ section[data-layout="divider"] .agenda:not(.agenda-all) {
 }
 
 .deck-keys .keys-table {
-  font-size: .58em;
-  line-height: 1.28;
+  font-size: .56em;
+  line-height: 1.24;
 }
 
 /* Tighter rows and groups, so that the whole list still fits a slide. */
@@ -242,7 +242,7 @@ section[data-layout="divider"] .agenda:not(.agenda-all) {
 }
 
 .deck-keys .keys-group {
-  margin-bottom: .35em;
+  margin-bottom: .3em;
 }
 
 /* The ? overlay: over everything, away on Esc, a click, or 3 seconds after the next key. */
@@ -1266,6 +1266,247 @@ body.presenting.deck-fullscreen .deck-notes-stage {
 .deck-present[aria-pressed="true"] {
   background: rgba(217, 164, 0, .22);
   border-color: #b88a00;
+}
+
+/* ---- jotted notes (deck-jot.js) ----
+   A pane over the right of the stage, below the toolbar, for notes written during the talk. It lies over the slide and does
+   not make the stage narrower (the notes column does). It is only there while presenting, not in the overview, not in print. The
+   notes stand oldest first with the field at the bottom, newest just above it. */
+.deck-jot {
+  display: none;
+}
+
+body.presenting:not(.overview) .deck-jot:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: var(--bar-h, 0px);
+  right: var(--notes-w, 0px);
+  bottom: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  width: min(27rem, 40vw);
+  font: clamp(14px, 1.05vw, 19px) / 1.4 system-ui, sans-serif;
+  color: #e9edf3;
+  background: #181e28;
+  border-left: 3px solid #5b9cf0;
+  box-shadow: -6px 0 24px rgba(0, 0, 0, .35);
+}
+
+body.presenting.deck-fullscreen .deck-jot {
+  padding-bottom: 3.2rem; /* the faint strip lies along the bottom edge */
+}
+
+.deck-jot-head {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3em .6em;
+  padding: .55em .8em;
+  border-bottom: 1px solid rgba(255, 255, 255, .18);
+}
+
+.deck-jot-title {
+  font-weight: 700;
+}
+
+.deck-jot-count {
+  flex: 1;
+  font-size: .85em;
+  opacity: .7;
+}
+
+.deck-jot-unkept {
+  flex-basis: 100%;
+  font-size: .85em;
+  color: #ffd166;
+}
+
+.deck-jot-unkept[hidden],
+.deck-jot-confirm[hidden] {
+  display: none;
+}
+
+.deck-jot-actions,
+.deck-jot-tools,
+.deck-jot-edit-row {
+  display: flex;
+  flex: none;
+  gap: .35em;
+}
+
+.deck-jot button {
+  box-sizing: border-box;
+  padding: .1em .6em;
+  font: inherit;
+  font-size: .85em;
+  color: inherit;
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .25);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.deck-jot button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, .22);
+}
+
+.deck-jot button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+.deck-jot .deck-jot-danger {
+  background: #7a1f1f;
+  border-color: #c55;
+}
+
+.deck-jot-confirm {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: .4em;
+  padding: .55em .8em;
+  font-size: .9em;
+  background: #3a2d12;
+  border-bottom: 1px solid #d9a400;
+}
+
+/* The list takes the room between the head and the field. margin-top: auto on its first note keeps a short list down
+   by the field, as a chat does, and a long one scrolls (centring with justify-content would lose the top of it). */
+.deck-jot-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: .55em;
+  min-height: 0;
+  padding: .6em .8em;
+  overflow-y: auto;
+}
+
+.deck-jot-list > :first-child {
+  margin-top: auto;
+}
+
+.deck-jot-note {
+  flex: none;
+  padding: .4em .6em .5em;
+  background: rgba(255, 255, 255, .07);
+  border-left: 3px solid #5b9cf0;
+  border-radius: 6px;
+}
+
+.deck-jot-meta {
+  display: flex;
+  gap: .55em;
+  align-items: baseline;
+  font-size: .8em;
+  opacity: .85;
+}
+
+.deck-jot-num {
+  font-weight: 700;
+}
+
+.deck-jot-slide {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-jot-mark {
+  font-style: italic;
+  white-space: nowrap;
+  opacity: .8;
+}
+
+.deck-jot-tools {
+  margin-left: auto;
+}
+
+.deck-jot .deck-jot-tool {
+  padding: 0 .4em;
+  font-size: .95em;
+  line-height: 1.4;
+}
+
+.deck-jot-text {
+  margin-top: .15em;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.deck-jot-gone {
+  opacity: .55;
+  border-left-color: #888;
+}
+
+.deck-jot-gone .deck-jot-text {
+  overflow: hidden;
+  text-decoration: line-through;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-jot-compose {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: .4em;
+  padding: .6em .8em .7em;
+  border-top: 1px solid rgba(255, 255, 255, .18);
+}
+
+.deck-jot-field {
+  box-sizing: border-box;
+  width: 100%;
+  padding: .4em .55em;
+  font: inherit;
+  color: #fff;
+  background: #0f141b;
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.deck-jot-field:focus {
+  outline: 2px solid #5b9cf0;
+}
+
+.deck-jot-edit {
+  margin-top: .3em;
+}
+
+.deck-jot-edit-row {
+  margin-top: .3em;
+}
+
+.deck-jot-send-row {
+  display: flex;
+  gap: .6em;
+  align-items: center;
+}
+
+.deck-jot-where {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: .8em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: .7;
+}
+
+.deck-bar .deck-jot-button[aria-pressed="true"] {
+  background: rgba(255, 255, 255, .3);
+}
+
+@media print {
+  .deck-jot {
+    display: none !important;
+  }
 }
 
 /* ---- print: one slide a page ---- */

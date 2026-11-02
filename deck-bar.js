@@ -2,10 +2,10 @@
 //
 // The toolbar, and the two strips that go with it. While presenting, the toolbar sits above the slide (below it, faint,
 // over the slide's edge, when the window is full screen); the page itself comes back when presenting stops. It holds the
-// buttons (stop, previous and next, the section buttons, the link, the ?, the overview, full screen, and the notes
-// if the deck has any), the count, where you are, the go-to list (deck-goto.js) and the progress bar: a segment for each
-// part of the talk, as wide as it has slides, filled as far as you have got. Pointing at a segment names it; clicking goes
-// to its first slide.
+// buttons (stop, previous and next, the section buttons, the link, the ?, the overview, full screen, the jotted notes, and
+// the speaker notes if the deck has any), the count, where you are, the go-to list (deck-goto.js) and the progress bar: a
+// segment for each part of the talk, as wide as it has slides, filled as far as you have got. Pointing at a segment names it;
+// clicking goes to its first slide.
 //
 // The strips: an error (a link that names a slide which is not there: showError, clearError) and a notice, in yellow,
 // for a slide inside a section that holds content which is not a slide (data-deck-warn, written by deck.xsl: that content
@@ -25,7 +25,7 @@ import { installGoto } from './deck-goto.js';
 import { stepsOf } from './deck-steps.js';
 
 export function installBar(deck) {
-  const { root, slides, last, state, notes } = deck;
+  const { root, slides, last, state, notes, jot } = deck;
   const { sectionsOf, members, sectionStarts, segments, titleOf, innermost, relative, trailOf, linksTo, describe, warningOf } = deck.shape;
   const { el, button, icon } = deck.ui;
 
@@ -61,7 +61,7 @@ export function installBar(deck) {
   const nav = el('span', 'deck-group');
   nav.append(prevSectionButton, prevButton, count, nextButton, nextSectionButton);
   const tools = el('span', 'deck-group deck-tools');
-  tools.append(warn, where, ...(notes.has ? [notes.barButton] : []), helpButton, overviewButton, fullButton);
+  tools.append(warn, where, ...(notes.has ? [notes.barButton] : []), jot.barButton, helpButton, overviewButton, fullButton);
   // The progress bar: a segment for each part of the talk, as wide as it has slides, filled as far as
   // you have got. Pointing at one names it; clicking goes to its first slide.
   const progress = el('div', 'deck-progress');

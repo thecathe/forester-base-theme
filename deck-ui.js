@@ -16,6 +16,7 @@ const ICONS = {
   check: '<path d="M3 8.5l3.2 3.2L13 4.8"/>',
   hook: '<path d="M2.5 4h6a3.5 3.5 0 0 1 3.5 3.5V13"/><path d="M9.8 10.5L12 13l2.2-2.5"/>',
   grid: '<rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1"/><rect x="9" y="9" width="4.5" height="4.5" rx="1"/>',
+  jot: '<path d="M3 13l.9-3.3 6.8-6.8a1.5 1.5 0 0 1 2.1 2.1L6 11.8z"/><path d="M9.6 4.1l2.3 2.3"/>',
   notes: '<rect x="2.5" y="2" width="11" height="12" rx="1.5"/><path d="M5.2 5.5h5.6M5.2 8h5.6M5.2 10.5h3.4"/>',
 };
 

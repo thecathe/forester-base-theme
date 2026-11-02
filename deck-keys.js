@@ -31,6 +31,7 @@ const KEY_TABLE = [
     [['o'], 'Overview of every slide (there, arrows or h j k l move, Enter goes to one)'],
     [['f'], 'Full screen'],
     [['n'], 'Show or hide the speaker notes (on the page too; the Notes button does the same)'],
+    [['m'], 'Jotted notes: open or close the pane (Enter adds a note, Esc closes it)'],
     [['?'], 'This list'],
     [['Esc'], 'Closes this list or the overview; then leaves full screen; then stops presenting'],
   ]],
@@ -144,6 +145,7 @@ export function installKeys(deck) {
       deck.overview.key(e);
       return;
     }
+    if (deck.jot.key(e)) return;
     // A focused link or button keeps the keys that activate it.
     const activates = e.target instanceof Element && e.target.closest('a, button, summary') !== null;
     let handled = true;

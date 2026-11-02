@@ -18,6 +18,7 @@
 //   deck-shape.js     the deck's shape, read from the marks: sections, titles, addresses (deck.shape)
 //   deck-steps.js     what arrives on which press of a slide: fragments, reveals, flips, \pairs and \steps
 //   deck-notes.js     speaker notes: a switch of their own (the Notes button, key n), a column beside the stage (deck.notes)
+//   deck-jot.js       jotted notes: a pane over the stage to write in while you talk (key m), kept in the browser (deck.jot)
 //   deck-agenda.js    \agenda outlines, dimmed behind you and bold where you are
 //   deck-footers.js   \footer, on each slide, with the \var-... words filled in
 //   deck-present.js   the Present and Resume buttons on the page
@@ -41,6 +42,7 @@
 import { layoutSteps, setActions, setFragment, stepsOf } from './deck-steps.js';
 import { installPrinting } from './deck-print.js';
 import { installNotes } from './deck-notes.js';
+import { installJot } from './deck-jot.js';
 import { readShape, wrapStrayText } from './deck-shape.js';
 import { button, el, icon } from './deck-ui.js';
 import { installAgenda } from './deck-agenda.js';
@@ -65,7 +67,7 @@ function init() {
   const deck = {
     root, slides, last, shape, state, ui: { el, icon, button },
     show, enter, exit, next, prev, nextSection, prevSection, enterFullscreen, toggleFullscreen,
-    // set as the parts are installed (below): notes, bar, help, overview, links
+    // set as the parts are installed (below): notes, jot, bar, help, overview, links
   };
 
   // ---- moving ----
@@ -175,6 +177,7 @@ function init() {
   installAgenda(deck);
   layoutSteps(root);
   installFooters(deck);
+  deck.jot = installJot(deck);
   installPresent(deck);
   deck.bar = installBar(deck);
   deck.help = installHelp(deck);
