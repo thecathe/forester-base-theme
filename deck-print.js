@@ -8,6 +8,8 @@ import { FRAGMENTS, setFragment, stepsOf } from './deck-steps.js';
 
 // What gets a page of its own when it arrives: the picture of a \step, and each item of an \incrul, \incrol or \incremental list.
 const PAGE_PER_ARRIVAL = '.step-visual, .incremental > :is(ul, ol) > li';
+// What gets a page just before it happens as well: the second face of a \swap, which takes the place of the first.
+const REPLACES = '.swap-then';
 
 // Printing the page gives a page for each slide with everything on it shown. What is only there for a while
 // (the picture of a \step), only on the other side of a \flip, or only there until the next bullet comes (the items of an
@@ -15,19 +17,19 @@ const PAGE_PER_ARRIVAL = '.step-visual, .incremental > :is(ul, ol) > li';
 // with such things prints as several pages, one for each state:
 //  - for each step picture, and for each item of an \incrul, \incrol or \incremental list, the slide as it is just after
 //    that one arrives (so the pages of a list show it growing, an item more on each);
-//  - for each flip that turns on a press (\flipi), the slide just before and just after it turns;
+//  - for each flip that turns on a press (\flipi) and each \swap, the slide just before and just after it turns, or one face takes the place of the other;
 //  - for each flip that turns on a click, a copy of the page with that flip, and no other, turned over: straight after the page where
 //    it first shows (for the picture of a step, the page where that picture arrives, since the next step's picture takes its place and
 //    its back would be lost), and for any other flip after the last page.
 // A \reveal is always printed open: what it hides is what the page is for, and it makes no page of its own. A slide with
-// no step picture, no list built up item by item and no flip is one page, as before.
+// no step picture, no list built up item by item, no flip and no swap is one page, as before.
 // The extra pages are copies of the slide, made for the printing and taken away after it.
 function printFrames(slide) {
   const { list, count } = stepsOf(slide);
   const presses = new Set();
   for (const f of list) {
     if (f.el.matches(PAGE_PER_ARRIVAL)) presses.add(f.from);
-    if (f.does === 'turn') {
+    if (f.does === 'turn' || f.el.matches(REPLACES)) {
       presses.add(f.from);
       presses.add(Math.max(0, f.from - 1));
     }

@@ -713,6 +713,38 @@ body.presenting section[data-deck="slide"].current img {
   display: contents;
 }
 
+/* \swap (trees/meta/fragments.tree): one thing replaced by another in the same place. On the page nothing is waiting to arrive, so the
+   faces stand one under the other. Presenting, and on a printed page (which is one state of the slide: .deck-frame), they lie in
+   one cell of a grid: the box is as wide and as tall as the bigger face and the two are centred on each other (or anchored: --swap-x and --swap-y, which a \sized can set, are start, center or end), so nothing moves when one goes
+   (.deck-hidden keeps its place) and the other comes. In the overview only the last face is shown, the state the slide ends in; the
+   other would lie under it. */
+body.presenting .swap,
+.deck-frame .swap {
+  display: grid;
+  align-items: var(--swap-y, center);
+  justify-items: var(--swap-x, center);
+  width: fit-content; /* as wide as the wider face, so it sits where the picture would have, and not across the slide */
+  max-width: 100%;
+}
+
+body.presenting .swap > .swap-face,
+.deck-frame .swap > .swap-face {
+  grid-area: 1 / 1;
+}
+
+body.presenting.overview .swap > .swap-first {
+  display: none;
+}
+
+.swap > .swap-face + .swap-face {
+  margin-top: .5em;
+}
+
+body.presenting .swap > .swap-face + .swap-face,
+.deck-frame .swap > .swap-face + .swap-face {
+  margin-top: 0;
+}
+
 /* A step that has not come yet keeps its place, so nothing jumps. */
 body.presenting .deck-hidden,
 .deck-frame .deck-hidden {

@@ -29,9 +29,13 @@
 //  - a fragment inside a \together (class "together") arrives with it, whatever else it says.
 // A fragment that says nothing (data-step-from="") is in the order written, as if it had not been given.
 //
+// The first face of a \swap (class swap-first) is there from the start, press 0, and goes when the second face arrives;
+// it is in the list so that it is shown and hidden as the rest are, but it takes no press of its own and is not "the
+// fragment written just before" for a "with". The second face is an ordinary fragment.
+//
 // Most fragments are shown or hidden. One that has data-step-does is acted on instead: "open" opens the
 // \reveal inside it, "turn" turns the \flip inside it, so what is on the stage follows the press.
-export const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li';
+export const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li, .swap-first';
 const stepCache = new WeakMap();
 
 // Whether anything is shown inside `outer` before `inner`: text, or a picture or a control. (What is
@@ -102,6 +106,10 @@ function arrivals(slide) {
     let previous = null;
     for (const item of group) {
       const { el, at, up, together } = item;
+      if (el.matches('.swap-first')) {
+        item.from = 0; // on from the start; no press of its own, and not what a "with" after it means
+        continue;
+      }
       if (together) item.from = itemOf.get(together).from;
       else if (typeof at === 'number') item.from = at;
       else if (at === 'with' && previous) item.from = previous.from;
@@ -134,7 +142,11 @@ export function stepsOf(slide) {
       return next && byEl.has(next) ? byEl.get(next).from : null;
     };
     for (const f of list) {
-      if (f.el.matches('.step-visual')) {
+      if (f.el.matches('.swap-first')) {
+        // a \swap's first face goes when its second arrives
+        const second = f.el.nextElementSibling;
+        if (second && byEl.has(second)) f.until = byEl.get(second).from;
+      } else if (f.el.matches('.step-visual')) {
         const at = nextRow(f.el);
         if (at !== null) f.until = at;
       } else if (f.el.matches('.step-text')) {
