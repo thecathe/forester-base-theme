@@ -2,29 +2,38 @@
 <!-- SPDX-License-Identifier: CC0-1.0 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:f="http://www.forester-notes.org">
 
+  <xsl:include href="leads-to.xsl" />
+
   <!--
     On a deck, a link to another tree of the forest says where that tree itself leads, as data-leads-to on the link: the
     address of its \meta{redirect}, else of its first \meta{external}, or nothing when it has neither. A deck is shown and
     printed away from the forest (a talk on a stage, a PDF), where the tree's page is not a place to go, so deck-links.js
-    sends the link to that address while presenting and printing, and makes it plain text when there is none. The tree's
-    own page is read for it (its index.xml, next to this page's), so this is written for decks only: another page's links
-    are as they were, and cost nothing.
+    sends the link to that address while presenting and printing, and makes it plain text when there is none. This is
+    written for decks only: another page's links are as they were, and cost nothing.
+
+    Where each tree leads is read from leads-to.xml, at the root of the output (the build writes it, with leads-to-index.xsl,
+    over the few trees that lead anywhere). It has to be that and not each tree's own page, because a page is large and
+    libxslt keeps every document it loads until the whole page is done: a deck that links to a hundred trees held them all,
+    and a build rendering several decks at once ran out of memory. Without leads-to.xml (output not made by the build, say)
+    the tree's page is read instead, which is the same answer at that cost.
   -->
   <xsl:variable name="links-lead" select="normalize-space(/f:tree/f:frontmatter/f:meta[@name='presentation']) = 'true'" />
 
+  <!-- Read once, and only on a deck: the empty address of any other page is its own document, which has no <leads-to>. -->
+  <xsl:variable name="leads-uri"><xsl:if test="$links-lead">../leads-to.xml</xsl:if></xsl:variable>
+  <xsl:variable name="leads-index" select="document(string($leads-uri), /)/leads-to" />
+
   <xsl:template name="leads-to">
     <xsl:param name="href" />
-    <xsl:variable name="tree" select="document(concat('..', substring-before(concat($href, '#'), '#'), 'index.xml'), /)/f:tree" />
-    <xsl:variable name="redirect" select="$tree/f:frontmatter/f:meta[@name='redirect'][1]" />
-    <xsl:variable name="external" select="$tree/f:frontmatter/f:meta[@name='external'][1]" />
-    <xsl:variable name="meta" select="$redirect | $external[not($redirect)]" />
+    <xsl:variable name="route" select="substring-before(concat($href, '#'), '#')" />
     <xsl:choose>
-      <!-- Rich content such as [foo.com](https://foo.com): the link's address, as metadata.xsl does. -->
-      <xsl:when test="$meta//f:link/@href">
-        <xsl:value-of select="($meta//f:link/@href)[1]" />
+      <xsl:when test="$leads-index">
+        <xsl:value-of select="$leads-index/to[@route = $route][1]" />
       </xsl:when>
       <xsl:otherwise>
-        <xsl:value-of select="normalize-space($meta)" />
+        <xsl:call-template name="tree-leads-to">
+          <xsl:with-param name="tree" select="document(concat('..', $route, 'index.xml'), /)/f:tree" />
+        </xsl:call-template>
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
