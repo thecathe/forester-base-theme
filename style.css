@@ -823,6 +823,11 @@ ol li ol li ol {
   grid-area: 1 / 1;
 }
 
+/* `instant`, the word for a \box whose flip turns with no animation: the face changes at once, as a slide change would. */
+.box.instant .flip-inner {
+  transition: none;
+}
+
 /* \reveal: a native details/summary. The theme hides every summary
    marker (see details>summary above), so this brings its own arrow. */
 .reveal {
