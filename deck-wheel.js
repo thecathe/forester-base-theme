@@ -22,6 +22,8 @@ export function installWheel(deck) {
   const wheel = { last: -Infinity, lastDelta: 0, dir: 0, pushed: 0, spent: false, moved: -Infinity };
   document.addEventListener('wheel', (e) => {
     if (!state.presenting || state.overview || e.ctrlKey || e.metaKey) return; // ctrl and wheel is the browser's zoom; the overview scrolls
+    // The jotted-notes pane (deck-jot.js) is a place to write and read: a wheel over it is its own, and never moves the slides.
+    if (e.target instanceof Element && e.target.closest('.deck-jot')) return;
     // Long notes scroll in their column; a wheel there is theirs.
     const column = e.target instanceof Element && e.target.closest('.deck-notes-stage');
     if (column && column.scrollHeight > column.clientHeight) return;
