@@ -326,6 +326,32 @@ body.presenting section[data-deck="slide"].current.deck-has-footer:not([data-lay
   padding-bottom: 2.3em;
 }
 
+/* \box{flush-bottom} (box words, style.css): a slide that has one directly in its body lays the body out as a column that is as tall as
+   the slide's content box, which stops where the room for the footer begins, so that the box's auto top margin pushes it down to
+   that edge. What does not fit is cut off and flagged as ever. A title or divider slide centres its content, and has no use for it.
+   Margins do not collapse in a column, so under a list or the rows of \steps (whose margin the heading's .5em was swallowed by) the
+   heading's .5em would add to it and the slide's text would start that much lower than any other's: there it is taken away. */
+body.presenting section[data-deck="slide"].current:not([data-layout="title"], [data-layout="divider"]):has(> details > .box.flush-bottom) {
+  display: flex;
+  flex-direction: column;
+}
+
+body.presenting section[data-deck="slide"].current:not([data-layout="title"], [data-layout="divider"]):has(> details > .box.flush-bottom) > details {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+body.presenting section[data-deck="slide"].current:not([data-layout="title"], [data-layout="divider"]):has(> details > .box.flush-bottom) > details::details-content {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+body.presenting section[data-deck="slide"].current:not([data-layout="title"], [data-layout="divider"]):has(> details > .box.flush-bottom):has(> details > summary + :is(ul, ol, .incremental, .steps, .pairs)) > details > summary > header {
+  margin-bottom: 0;
+}
+
 /* In the overview the thumbnails are not under the toolbar. */
 body.presenting.overview section[data-deck="slide"].current > .deck-footer {
   bottom: 0;
@@ -1757,6 +1783,28 @@ body.presenting.deck-fullscreen .deck-jot {
 
   section[data-deck="slide"].deck-has-footer:not([data-layout]) {
     padding-bottom: 2.3em;
+  }
+
+  /* \box{flush-bottom}, as on the stage (above) */
+  section[data-deck="slide"]:not([data-layout="title"], [data-layout="divider"]):has(> details > .box.flush-bottom) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  section[data-deck="slide"]:not([data-layout="title"], [data-layout="divider"]):has(> details > .box.flush-bottom) > details {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
+
+  section[data-deck="slide"]:not([data-layout="title"], [data-layout="divider"]):has(> details > .box.flush-bottom) > details::details-content {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
+
+  section[data-deck="slide"]:not([data-layout="title"], [data-layout="divider"]):has(> details > .box.flush-bottom):has(> details > summary + :is(ul, ol, .incremental, .steps, .pairs)) > details > summary > header {
+    margin-bottom: 0;
   }
 
   section[data-deck="slide"] > details > summary {
