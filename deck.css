@@ -525,6 +525,22 @@ body.presenting .deck-notice {
   height: .26em;
 }
 
+/* A \staystep's picture stays while the \substeps after it are on, and each of their pictures is to sit under it. All the pictures
+   of a \steps are laid in one place, the top of the right column, and a grid cannot stack items from different rows, so steps.xsl gives
+   the picture of each such \substep a .stay-spacer: a copy of the staying picture, which is as tall as it is wherever it is shown, and
+   which is never seen. Its margins are the margins of what is in it and collapse with those of the picture after it, so the two
+   sit one under the other as two blocks of one picture would. On the ordinary page each row has its picture beside it, and the copy
+   would only repeat the one above. */
+.stay-spacer {
+  display: none;
+}
+
+:is(body.presenting, .deck-frame) .stay-spacer {
+  display: block;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 li :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text) {
   padding-left: 0;
 }
@@ -604,9 +620,10 @@ li :is(.pairs, .steps) > :is(.pair, .step) > :is(.pair-text, .step-text)::before
 
 /* The overview shows every step, which for pictures that go when the next row arrives is the last. What is
    in a picture that is hidden stays hidden too: the overview makes every step visible, one by one, and a
-   step inside a hidden picture (an item of a list in it) would otherwise show through. */
-body.presenting.overview :is(.pairs, .steps) > .step:not(:nth-last-child(1 of :not(.clear-step))) > .step-visual,
-body.presenting.overview :is(.pairs, .steps) > .step:not(:nth-last-child(1 of :not(.clear-step))) > .step-visual * {
+   step inside a hidden picture (an item of a list in it) would otherwise show through. A \staystep whose \substeps run to the
+   end of the block stays too: its picture is on show with the last one's, as it is at the end of the slide. */
+body.presenting.overview :is(.pairs, .steps) > .step:not(:nth-last-child(1 of :not(.clear-step)), .staystep:not(:has(~ :is(.pair, .step:not(.substep))))) > .step-visual,
+body.presenting.overview :is(.pairs, .steps) > .step:not(:nth-last-child(1 of :not(.clear-step)), .staystep:not(:has(~ :is(.pair, .step:not(.substep))))) > .step-visual * {
   visibility: hidden;
 }
 

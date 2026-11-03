@@ -19,7 +19,8 @@
 //    a list never shows up empty before the step it holds (see hasContentBefore);
 //  - the picture of a \step (in \steps, or among the \pair of a \pairs) goes away when the next row
 //    arrives, whether that is a \pair or a \step, so a step's picture is only ever there until then.
-//    The last row has no next one: it stays, unless a \clearstep ends the block (see below).
+//    The last row has no next one: it stays, unless a \clearstep ends the block (see below). The picture of a \staystep
+//    stays through the \substeps after it, and goes with the next row that is not one (or at that \clearstep).
 //
 // A fragment can say when it arrives (\fragmenti, \reveali, \flipi: data-step-from), and that overrides the above:
 //  - a number is an exact press, and the ones written after it carry on from the largest press so far;
@@ -35,7 +36,10 @@
 //
 // Most fragments are shown or hidden. One that has data-step-does is acted on instead: "open" opens the
 // \reveal inside it, "turn" turns the \flip inside it, so what is on the stage follows the press.
-export const FRAGMENTS = '[data-step-from], .fragment, .incremental > :is(ul, ol) > li, .swap-first';
+//
+// The hidden copy of a \staystep's picture that steps.xsl gives each of its \substeps (.stay-spacer) is not content, so nothing
+// inside it is a fragment: it is only there to be as tall as the picture it copies.
+export const FRAGMENTS = ':is([data-step-from], .fragment, .incremental > :is(ul, ol) > li, .swap-first):not(.stay-spacer *)';
 const stepCache = new WeakMap();
 
 // Whether anything is shown inside `outer` before `inner`: text, or a picture or a control. (What is
@@ -147,7 +151,8 @@ export function stepsOf(slide) {
         const second = f.el.nextElementSibling;
         if (second && byEl.has(second)) f.until = byEl.get(second).from;
       } else if (f.el.matches('.step-visual')) {
-        const at = nextRow(f.el);
+        // a \staystep's picture stays through its \substeps
+        const at = nextRow(f.el, f.el.parentElement.matches('.staystep'));
         if (at !== null) f.until = at;
       } else if (f.el.matches('.step-text')) {
         f.passed = nextRow(f.el);
@@ -164,6 +169,11 @@ export function stepsOf(slide) {
       const visual = last.querySelector(':scope > .step-visual');
       if (visual) byEl.get(visual).until = after.from;
       byEl.get(last.querySelector(':scope > .step-text')).passed = after.from;
+      // a \staystep whose \substeps run to the end of the block has no next row either
+      for (const stay of block.querySelectorAll(':scope > .staystep > .step-visual')) {
+        const f = byEl.get(stay);
+        if (f.until === null) f.until = after.from;
+      }
       // the rows still waiting to be dimmed (the last, and any row whose sub-steps run to the end) go with it
       for (const text of block.querySelectorAll(':scope > .step > .step-text')) {
         const f = byEl.get(text);
