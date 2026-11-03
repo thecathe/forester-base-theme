@@ -47,9 +47,11 @@ function printFrames(slide) {
   return frames;
 }
 
-// The flips of a slide that turn when they are clicked (and not those the steps turn), in the order of the page.
+// The flips of a slide that turn when they are clicked (and not those the steps turn), in the order of the page. A flip in the
+// invisible copy of a \staystep's picture (.stay-spacer, see steps.xsl) is not one: it is never seen, so it would make a page of
+// its own that looks like the one before it.
 function clickFlips(el) {
-  return [...el.querySelectorAll('.flip-checkbox')].filter((c) => !c.closest('[data-step-does]'));
+  return [...el.querySelectorAll('.flip-checkbox')].filter((c) => !c.closest('[data-step-does], .stay-spacer'));
 }
 
 // Sets a slide (or a copy of one, whose steps and flips are in the same order) to a page's state: `turned` says which of the

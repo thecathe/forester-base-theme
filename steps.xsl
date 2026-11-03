@@ -69,6 +69,33 @@
     </xsl:if>
   </xsl:template>
 
+  <!--
+    \staystep (trees/meta/fragments.tree): its picture stays while the \substep rows after it are on, and the picture of each of those
+    is to sit under it, not over it. Every picture of a \steps is laid in the same place, the top of the right column (deck.css), and
+    a grid cannot put one under another from different rows, so the picture of such a \substep is given an invisible copy of the
+    staying picture to sit under, which is as tall as the picture wherever it is shown (the stage, the overview, a printed page). The
+    copy is not content: deck-steps.js counts nothing in it, and deck.css shows it only where the pictures are laid out that way, and
+    then invisibly (on the ordinary page every row has its own picture, and the copy would only repeat it).
+
+    The \staystep that governs a \substep is the nearest row before it that is not a \substep. Any other row (a \step, a \clearstep{text},
+    a \pair) ends the stay, so a \substep after one of those has no copy.
+  -->
+  <xsl:template match="html:div[@class = 'step-visual fragment'][parent::html:div/@class = 'step substep']">
+    <xsl:variable name="stay" select="parent::html:div/preceding-sibling::html:div[not(@class = 'step substep')][1][@class = 'step staystep']" />
+    <xsl:element namespace="http://www.w3.org/1999/xhtml" name="div">
+      <xsl:apply-templates select="@*" />
+      <xsl:if test="$stay">
+        <xsl:element namespace="http://www.w3.org/1999/xhtml" name="div">
+          <xsl:attribute name="class">stay-spacer</xsl:attribute>
+          <xsl:attribute name="aria-hidden">true</xsl:attribute>
+          <xsl:attribute name="inert" />
+          <xsl:apply-templates select="$stay/html:div[@class = 'step-visual fragment']/node()" />
+        </xsl:element>
+      </xsl:if>
+      <xsl:apply-templates select="node()" />
+    </xsl:element>
+  </xsl:template>
+
   <xsl:template match="html:div[@class = 'clear-step']">
     <xsl:variable name="in-block" select="parent::html:div[@class = 'steps' or @class = 'pairs']" />
     <xsl:variable name="empty" select="normalize-space(string(.)) = '' and not(*)" />
