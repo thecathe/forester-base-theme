@@ -857,6 +857,15 @@ ol li ol li ol {
   margin-left: 0;
 }
 
+/* `flush-right` on anything that is not a box, a span in a line of text (\flushright, styling.tree): it cannot be moved by a margin
+   (an inline element has no automatic margin, and a block would start a line of its own), so it floats to the right instead, and
+   stays on the line it is written on, the text of which runs on beside it. It is out of the flow, as a float is: on a line of its
+   own it takes no height, so what follows runs on beside it. */
+.flush-right:not(.box) {
+  float: right;
+  margin-left: .5em;
+}
+
 /* \reveal: a native details/summary. The theme hides every summary
    marker (see details>summary above), so this brings its own arrow. */
 .reveal {
