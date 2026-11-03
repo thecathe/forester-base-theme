@@ -828,6 +828,15 @@ ol li ol li ol {
   transition: none;
 }
 
+/* `flush-bottom`, the word for a \box that sits at the foot of a slide: its bottom edge is the bottom edge of the slide's body, which
+   is where the room for the footer begins. It does its work only on a slide, and for a box that stands directly in the slide's body
+   (deck.css makes the body a column, so the box's automatic top margin takes up what the rest leaves); anywhere else, on the page
+   and in a column, it is an ordinary box. */
+.box.flush-bottom {
+  margin-top: auto;
+  margin-bottom: 0;
+}
+
 /* \reveal: a native details/summary. The theme hides every summary
    marker (see details>summary above), so this brings its own arrow. */
 .reveal {
