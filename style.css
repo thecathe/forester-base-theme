@@ -837,6 +837,26 @@ ol li ol li ol {
   margin-bottom: 0;
 }
 
+/* `flush-right`, the word for a \box that sits against the right edge of whatever holds it (the slide's body, a column, the page):
+   its right edge is the container's. A box is as wide as its container unless it has a size token, so this one is as wide as its
+   content instead (a size token keeps its width) and its automatic left margin takes up what is left. A sized box sits in the
+   line, where an automatic margin does nothing, so here it stands on a line of its own. Nothing but the box's own margin and width
+   changes, so it works anywhere, on the stage, the page and in print, and goes with `flush-bottom` for the corner. */
+.box.flush-right {
+  display: block;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.box.flush-right:not(.sm, .md, .lg) {
+  width: fit-content;
+}
+
+.sized > .box.flush-right {
+  width: 100%;
+  margin-left: 0;
+}
+
 /* \reveal: a native details/summary. The theme hides every summary
    marker (see details>summary above), so this brings its own arrow. */
 .reveal {
